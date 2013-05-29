@@ -1,1 +1,6 @@
-/build/
+# ignore directories for build and dependencies 
+/build/*
+/dependencies/*
+
+# OS X specific files
+.DS_Store
