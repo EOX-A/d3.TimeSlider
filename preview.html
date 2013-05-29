@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+	<head>
+			<meta charset="utf-8">
+			<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+			<title>D3.TimeSlider()</title>
+			<meta name="description" content="EOX :: Maps demo website.">
+			<meta name="viewport" content="width=device-width">
+
+			<!-- Styles -->
+			<link href="dependencies/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css" media="screen" />
+
+			<!-- Timeslider -->
+			<script src="dependencies/d3.v3/d3.v3.min.js" charset="utf-8"></script>
+			<script src="build/d3.timeslider.js"></script>
+			<link href="build/d3.timeslider.css" rel="stylesheet" type="text/css" media="all" />
+
+			<!-- Custom styles -->
+			<style type="text/css" media="screen">
+			/* <![CDATA[ */
+				em {
+					font-weight: bolder;
+				}
+
+				div#d3_timeslider {
+					width: 90%; 
+					margin: 3em 0; 
+					padding: 3em 5%;
+					background: black;
+				}
+			/* ]]> */
+			</style>
+	</head>
+	<body>
+		<!--[if lt IE 7]>
+				<p class="chromeframe">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> or <a href="http://www.google.com/chromeframe/?redirect=true">activate Google Chrome Frame</a> to improve your experience.</p>
+		<![endif]-->
+		<div class="container">
+			<h1>D3.TimeSlider()</h1>
+			<p>Please keep in mind that this is a work in progress. We are still in the early stages of optimizing the code and there are some rought edges.</p>
+			<p>To use it, you have to download <a href="http://twitter.github.io/bootstrap/">Bootstrap</a> and <a href="http://d3js.org/">D3.js</a> and place these dependencies in the the <em>dependencies</em> directory. Additionally you have to compile the <a href="http://coffeescript.org/">CoffeeScript</a> and <a href="http://lesscss.org/">LESS</a> sources and place those files in the <em>build</em> directory.</p>
+			<p>If you need help compiling the sources, take a look at <a href="http://koala-app.com/">Koala</a>.</p>
+		</div>
+
+		<!-- Time Slider -->
+		<div id="d3_timeslider"></div>
+		<script>
+			window.addEventListener('load', function() {
+				
+				// Initialize the TimeSlider
+				slider = new TimeSlider(document.getElementById('d3_timeslider'), { 
+					start: new Date("2012-01-01T00:00:00Z"), 
+					end: new Date("2013-01-01T00:00:00Z"),
+					brush: {
+						start: new Date("2012-01-05T00:00:00Z"), 
+						end: new Date("2012-01-10T00:00:00Z")
+					},
+				});
+				
+				// Register a callback for changing the selected time period
+				document.getElementById('d3_timeslider').dispatch.on('brushEnd.log', function(data){
+					console.log(data);
+				});				
+
+			}, false);
+		</script>
+
+	</body>
+</html>
