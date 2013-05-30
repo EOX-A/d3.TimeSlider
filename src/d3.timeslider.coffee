@@ -239,6 +239,16 @@ class TimeSlider
     show: ->
         @element.style.display = @originalDisplay
         true
+
+    select: (params...) ->
+        start = new Date(params[0])
+        start = @options.start if start < @options.start
+
+        end = new Date(params[1])
+        end = @options.end if end > @options.end
+
+        d3.select(@element).select('.brush').call(@brush.extent([start, end]))
+        true
     
 # Export the TimeSlider object for use in the browser
 this.TimeSlider = TimeSlider
