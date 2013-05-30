@@ -1,7 +1,7 @@
 class TimeSlider
 
     # TODO
-    #  * Are the zoom() and draw() functions accesible from the outside?
+    #  * The @draw function is still accessible from outside
     #  * Create a show() / hide() function pair
     #  * Allow for the registration of datasets to be shown beneath the brush
     #  * Rename pixelPerDay to something more generic (could also be hours, ... depending on the time frame)
@@ -96,13 +96,8 @@ class TimeSlider
             d3.event.stopPropagation()
         )
 
-        # zooming 
-        # (done via a seperate function, because we need to bind to two differen event listeners)
-        d3.select(element).on('DOMMouseScroll', @zoom)
-        d3.select(element).on('mousewheel', @zoom)
-
         # resizing (the window)
-        d3.select(window).on('resize', =>
+        resize = =>
             # update the width of the element
             @options.width = @element.clientWidth
 
@@ -118,75 +113,81 @@ class TimeSlider
 
             # repaint the scales and the brush
             @draw()
-        )
 
-    zoom: =>
-        if @debug
-            time = {}
-            time.start = new Date()
+        d3.select(window).on('resize', resize)
 
-        direction = d3.event.wheelDelta if d3.event.wheelDelta
-        direction = d3.event.detail * -1 if d3.event.detail
+        # zooming 
+        # (done via a seperate function, because we need to bind to two differen event listeners)
+        zoom = =>
+            if @debug
+                time = {}
+                time.start = new Date()
 
-        if direction > 0
-            if @element.zoomLevel < 10
-                @options.pixelPerDay *= 1.5
-                @element.zoomLevel += 1
-        else
-            if @element.zoomLevel > -10
-                @options.pixelPerDay /= 1.5
-                @element.zoomLevel -= 1
+            direction = d3.event.wheelDelta if d3.event.wheelDelta
+            direction = d3.event.detail * -1 if d3.event.detail
 
-        console.log('Zooming to level ' + @element.zoomLevel) if @debug
-
-        # update scale 
-        @scales.x.range([0, @numberOfDays * @options.pixelPerDay])
-
-        # update axis
-        # TODO make cleaner
-        switch 
-            when @element.zoomLevel < -7
-                @axis.x.ticks(d3.time.months.utc, 2).tickFormat(d3.time.format.utc("%Y-%m"))
-                @grid.x.ticks(d3.time.months.utc, 1)
-            when @element.zoomLevel < -5
-                @axis.x.ticks(d3.time.months.utc, 1).tickFormat(d3.time.format.utc("%Y-%m"))
-                @grid.x.ticks(d3.time.months.utc, 1)
-            when @element.zoomLevel < -3
-                @axis.x.ticks(d3.time.mondays.utc, 2).tickFormat(d3.time.format.utc("%Y-%m-%d"))
-                @grid.x.ticks(d3.time.mondays.utc, 1)
-            when @element.zoomLevel < -1
-                @axis.x.ticks(d3.time.mondays.utc, 1).tickFormat(d3.time.format.utc("%Y-%m-%d"))
-                @grid.x.ticks(d3.time.days.utc, 1)
-            when @element.zoomLevel < 1
-                @axis.x.ticks(d3.time.days.utc, 3).tickFormat(d3.time.format.utc("%Y-%m-%d"))
-                @grid.x.ticks(d3.time.days.utc, 1)
-            when @element.zoomLevel < 3
-                @axis.x.ticks(d3.time.days.utc, 1).tickFormat(d3.time.format.utc("%Y-%m-%d"))
-                @grid.x.ticks(d3.time.days.utc, 1)
-            when @element.zoomLevel < 4
-                @axis.x.ticks(d3.time.days.utc, 1).tickFormat(d3.time.format.utc("%Y-%m-%d"))
-                @grid.x.ticks(d3.time.hours.utc, 6)                
-            when @element.zoomLevel <= 5
-                @axis.x.ticks(d3.time.hours.utc, 12).tickFormat(d3.time.format.utc("%Y-%m-%d %I:%M"))
-                @grid.x.ticks(d3.time.hours.utc, 3)
-            when @element.zoomLevel <= 7
-                @axis.x.ticks(d3.time.hours.utc, 6).tickFormat(d3.time.format.utc("%Y-%m-%d %I:%M"))
-                @grid.x.ticks(d3.time.hours.utc, 1)
-            when @element.zoomLevel <= 9
-                @axis.x.ticks(d3.time.hours.utc, 3).tickFormat(d3.time.format.utc("%Y-%m-%d %I:%M"))
-                @grid.x.ticks(d3.time.minutes.utc, 30)
+            if direction > 0
+                if @element.zoomLevel < 10
+                    @options.pixelPerDay *= 1.5
+                    @element.zoomLevel += 1
             else
-                @axis.x.ticks(d3.time.minutes.utc, 90).tickFormat(d3.time.format.utc("%Y-%m-%d %I:%M"))
-                @grid.x.ticks(d3.time.minutes.utc, 30)
+                if @element.zoomLevel > -10
+                    @options.pixelPerDay /= 1.5
+                    @element.zoomLevel -= 1
 
-        # update brush 
-        @brush.x(@scales.x).extent(@brush.extent())
+            console.log('Zooming to level ' + @element.zoomLevel) if @debug
 
-        # repaint the scales and axis
-        @draw()
+            # update scale 
+            @scales.x.range([0, @numberOfDays * @options.pixelPerDay])
 
-        if @debug
-            console.log('Done zooming, took ?? milliseconds: '+ (new Date().getTime() - time.start.getTime())) 
+            # update axis
+            # TODO make cleaner
+            switch 
+                when @element.zoomLevel < -7
+                    @axis.x.ticks(d3.time.months.utc, 2).tickFormat(d3.time.format.utc("%Y-%m"))
+                    @grid.x.ticks(d3.time.months.utc, 1)
+                when @element.zoomLevel < -5
+                    @axis.x.ticks(d3.time.months.utc, 1).tickFormat(d3.time.format.utc("%Y-%m"))
+                    @grid.x.ticks(d3.time.months.utc, 1)
+                when @element.zoomLevel < -3
+                    @axis.x.ticks(d3.time.mondays.utc, 2).tickFormat(d3.time.format.utc("%Y-%m-%d"))
+                    @grid.x.ticks(d3.time.mondays.utc, 1)
+                when @element.zoomLevel < -1
+                    @axis.x.ticks(d3.time.mondays.utc, 1).tickFormat(d3.time.format.utc("%Y-%m-%d"))
+                    @grid.x.ticks(d3.time.days.utc, 1)
+                when @element.zoomLevel < 1
+                    @axis.x.ticks(d3.time.days.utc, 3).tickFormat(d3.time.format.utc("%Y-%m-%d"))
+                    @grid.x.ticks(d3.time.days.utc, 1)
+                when @element.zoomLevel < 3
+                    @axis.x.ticks(d3.time.days.utc, 1).tickFormat(d3.time.format.utc("%Y-%m-%d"))
+                    @grid.x.ticks(d3.time.days.utc, 1)
+                when @element.zoomLevel < 4
+                    @axis.x.ticks(d3.time.days.utc, 1).tickFormat(d3.time.format.utc("%Y-%m-%d"))
+                    @grid.x.ticks(d3.time.hours.utc, 6)                
+                when @element.zoomLevel <= 5
+                    @axis.x.ticks(d3.time.hours.utc, 12).tickFormat(d3.time.format.utc("%Y-%m-%d %I:%M"))
+                    @grid.x.ticks(d3.time.hours.utc, 3)
+                when @element.zoomLevel <= 7
+                    @axis.x.ticks(d3.time.hours.utc, 6).tickFormat(d3.time.format.utc("%Y-%m-%d %I:%M"))
+                    @grid.x.ticks(d3.time.hours.utc, 1)
+                when @element.zoomLevel <= 9
+                    @axis.x.ticks(d3.time.hours.utc, 3).tickFormat(d3.time.format.utc("%Y-%m-%d %I:%M"))
+                    @grid.x.ticks(d3.time.minutes.utc, 30)
+                else
+                    @axis.x.ticks(d3.time.minutes.utc, 90).tickFormat(d3.time.format.utc("%Y-%m-%d %I:%M"))
+                    @grid.x.ticks(d3.time.minutes.utc, 30)
+
+            # update brush 
+            @brush.x(@scales.x).extent(@brush.extent())
+
+            # repaint the scales and axis
+            @draw()
+
+            if @debug
+                console.log('Done zooming, took ?? milliseconds: '+ (new Date().getTime() - time.start.getTime()))
+
+        d3.select(element).on('DOMMouseScroll', zoom)
+        d3.select(element).on('mousewheel', zoom)
 
     draw: ->
         # compute the area to show
@@ -219,6 +220,6 @@ class TimeSlider
                 # TODO remove hardcoded height
                 .attr('height', (@options.height - 20 - 2) + "px")
                 .attr('y', 0)
-
+    
 # Export the TimeSlider object for use in the browser
 this.TimeSlider = TimeSlider
