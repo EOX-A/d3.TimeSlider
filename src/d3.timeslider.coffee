@@ -8,7 +8,6 @@ class TimeSlider
     #  * Compute the padding at the left & right of the timeslider
     #  * Convert all dates to UTC
     #  * Center the brush
-    #  * Don't allow dragging past the beginning / end
     #  * Limit brush to the time between start & end date
 
     constructor: (@element, @options = {}) ->
@@ -71,20 +70,31 @@ class TimeSlider
         @draw()
 
         # dragging
-        d3.select(element).on('mousedown', =>
+        drag = =>
             # init
             element.dragging = { position: [0, 0] } unless element.dragging
 
             # set last position of the curser
             element.dragging.lastPosition = [d3.event.pageX, d3.event.pageY]
 
-            # event handlers
+            # register event handlers for mousemove (to handle the real dragging logic) and mouseup
+            # to deregister unneeded handlers
             d3.select(document)
                 .on('mousemove', =>
                     element.dragging.position[0] += d3.event.pageX - element.dragging.lastPosition[0]
                     element.dragging.position[1] += d3.event.pageY - element.dragging.lastPosition[1]
                     element.dragging.lastPosition = [d3.event.pageX, d3.event.pageY]
-                    @root.attr('transform', "translate(#{element.dragging.position[0]}, 0)")
+
+                    width = Math.ceil(d3.select(@element).select('svg').style('width').slice(0, -2))
+
+                    # TODO Allow dragging over the boundaries, but snap back afterwards
+                    if element.dragging.position[0] > 0
+                        element.dragging.position[0] = 0
+                    else if ((Number) element.dragging.position[0] + @scales.x.range()[1]) < width
+                        element.dragging.position[0] = width - @scales.x.range()[1]
+                        console.log("Dragging Position #{element.dragging.position}")
+                    @root.attr('transform', "translate(#{element.dragging.position[0]}, 0)") 
+
                 )
                 .on('mouseup', =>
                     d3.select(document).on('mousemove', null).on('mouseup', null)
@@ -93,7 +103,8 @@ class TimeSlider
             # prevent default events
             d3.event.preventDefault()
             d3.event.stopPropagation()
-        )
+
+        d3.select(element).on('mousedown', drag)
 
         # resizing (the window)
         resize = =>
@@ -225,7 +236,7 @@ class TimeSlider
         @originalDisplay = @element.style.display
         @element.style.display = 'none'
         true
-        
+
     show: ->
         @element.style.display = @originalDisplay
         true
