@@ -2,7 +2,6 @@ class TimeSlider
 
     # TODO
     #  * The @draw function is still accessible from outside
-    #  * Create a show() / hide() function pair
     #  * Allow for the registration of datasets to be shown beneath the brush
     #  * Rename pixelPerDay to something more generic (could also be hours, ... depending on the time frame)
     #  * Cleanup the mess that is the axis labels right now
@@ -220,6 +219,16 @@ class TimeSlider
                 # TODO remove hardcoded height
                 .attr('height', "#{@options.height - 20 - 2}px")
                 .attr('y', 0)
+
+    # Function pair to allow for easy hiding and showing the time slider
+    hide: ->
+        @originalDisplay = @element.style.display
+        @element.style.display = 'none'
+        true
+        
+    show: ->
+        @element.style.display = @originalDisplay
+        true
     
 # Export the TimeSlider object for use in the browser
 this.TimeSlider = TimeSlider
