@@ -90,7 +90,6 @@ class TimeSlider
             @root.select('g.brush').remove()
             @root.append('g')
                 .attr('class', 'brush')
-                .attr('transform', "translate(#{@options.pixelPerDay / 2},0)")
                 .call(@brush)
                 .selectAll('rect')
                     # TODO remove hardcoded height
