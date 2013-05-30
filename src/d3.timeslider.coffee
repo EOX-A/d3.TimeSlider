@@ -1,7 +1,6 @@
 class TimeSlider
 
     # TODO
-    #  * The @draw function is still accessible from outside
     #  * Allow for the registration of datasets to be shown beneath the brush
     #  * Rename pixelPerDay to something more generic (could also be hours, ... depending on the time frame)
     #  * Cleanup the mess that is the axis labels right now
@@ -66,8 +65,40 @@ class TimeSlider
             .on('brushend', => element.dispatch.brushEnd(@brush.extent()))
             .extent([@options.brush.start.getTime(),@options.brush.end.getTime()])
 
+        draw = =>
+            # compute the area to show
+            #@scale.x.domain([ @options.start, @options.end ])
+
+            # x axis
+            @root.select('g.axis').remove()
+            @root.append('g')
+                .attr('class', 'axis')
+                # TODO compute the 20px translation
+                .attr('transform', "translate(0, #{@options.height - 20})")
+                .call(@axis.x)
+
+            # x axis grid
+            @root.select('g.grid').remove()
+            @root.append('g')
+                .attr('class', 'grid')
+                .attr('width', @options.width)
+                # TODO compute the 20px translation
+                .attr('transform', "translate(0, #{@options.height - 20})")
+                .call(@grid.x)
+
+            # brush
+            @root.select('g.brush').remove()
+            @root.append('g')
+                .attr('class', 'brush')
+                .attr('transform', "translate(#{@options.pixelPerDay / 2},0)")
+                .call(@brush)
+                .selectAll('rect')
+                    # TODO remove hardcoded height
+                    .attr('height', "#{@options.height - 20 - 2}px")
+                    .attr('y', 0)
+
         # call the repaint method to seupt the axis, grid, brush
-        @draw()
+        draw()
 
         # dragging
         drag = =>
@@ -122,7 +153,7 @@ class TimeSlider
             @brush.x(@scales.x).extent(@brush.extent())
 
             # repaint the scales and the brush
-            @draw()
+            draw()
 
         d3.select(window).on('resize', resize)
 
@@ -191,45 +222,13 @@ class TimeSlider
             @brush.x(@scales.x).extent(@brush.extent())
 
             # repaint the scales and axis
-            @draw()
+            draw()
 
             if @debug
                 console.log("Done zooming, took #{new Date().getTime() - time.start.getTime()} milliseconds.")
 
         d3.select(element).on('DOMMouseScroll', zoom)
         d3.select(element).on('mousewheel', zoom)
-
-    draw: ->
-        # compute the area to show
-        #@scale.x.domain([ @options.start, @options.end ])
-
-        # x axis
-        @root.select('g.axis').remove()
-        @root.append('g')
-            .attr('class', 'axis')
-            # TODO compute the 20px translation
-            .attr('transform', "translate(0, #{@options.height - 20})")
-            .call(@axis.x)
-
-        # x axis grid
-        @root.select('g.grid').remove()
-        @root.append('g')
-            .attr('class', 'grid')
-            .attr('width', @options.width)
-            # TODO compute the 20px translation
-            .attr('transform', "translate(0, #{@options.height - 20})")
-            .call(@grid.x)
-
-        # brush
-        @root.select('g.brush').remove()
-        @root.append('g')
-            .attr('class', 'brush')
-            .attr('transform', "translate(#{@options.pixelPerDay / 2},0)")
-            .call(@brush)
-            .selectAll('rect')
-                # TODO remove hardcoded height
-                .attr('height', "#{@options.height - 20 - 2}px")
-                .attr('y', 0)
 
     # Function pair to allow for easy hiding and showing the time slider
     hide: ->
