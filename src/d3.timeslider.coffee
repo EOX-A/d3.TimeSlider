@@ -48,7 +48,13 @@ class TimeSlider
                 .ticks(d3.time.days.utc, 3)
                 #.tickFormat(d3.time.format("%Y-%m-%d"))
 
-        # grid
+        @root.append('g')
+            .attr('class', 'axis')
+            # TODO compute the 20px translation
+            .attr('transform', "translate(0, #{@options.height - 20})")
+            .call(@axis.x)
+
+       # grid
         @grid = 
             x: d3.svg.axis()
                 .scale(@scales.x)
@@ -57,47 +63,28 @@ class TimeSlider
                 # TODO compute the 20px translation
                 .tickSize(-@options.height+20, 0, 0)
 
+        @root.append('g')
+            .attr('class', 'grid')
+            .attr('width', @options.width)
+            # TODO compute the 20px translation
+            .attr('transform', "translate(0, #{@options.height - 20})")
+            .call(@grid.x)
+
         # brush
         element.dispatch = d3.dispatch('brushStart', 'brushEnd')
         @brush = d3.svg.brush()
             .x(@scales.x)
             .on('brushstart', => element.dispatch.brushStart(@brush.extent()))
             .on('brushend', => element.dispatch.brushEnd(@brush.extent()))
-            .extent([@options.brush.start.getTime(),@options.brush.end.getTime()])
+            .extent([@options.brush.start, @options.brush.end])
 
-        draw = =>
-            # compute the area to show
-            #@scale.x.domain([ @options.start, @options.end ])
-
-            # x axis
-            @root.select('g.axis').remove()
-            @root.append('g')
-                .attr('class', 'axis')
-                # TODO compute the 20px translation
-                .attr('transform', "translate(0, #{@options.height - 20})")
-                .call(@axis.x)
-
-            # x axis grid
-            @root.select('g.grid').remove()
-            @root.append('g')
-                .attr('class', 'grid')
-                .attr('width', @options.width)
-                # TODO compute the 20px translation
-                .attr('transform', "translate(0, #{@options.height - 20})")
-                .call(@grid.x)
-
-            # brush
-            @root.select('g.brush').remove()
-            @root.append('g')
-                .attr('class', 'brush')
-                .call(@brush)
-                .selectAll('rect')
-                    # TODO remove hardcoded height
-                    .attr('height', "#{@options.height - 20 - 2}px")
-                    .attr('y', 0)
-
-        # call the repaint method to seupt the axis, grid, brush
-        draw()
+        @root.append('g')
+            .attr('class', 'brush')
+            .call(@brush)
+            .selectAll('rect')
+                # TODO remove hardcoded height
+                .attr('height', "#{@options.height - 20 - 2}px")
+                .attr('y', 0)
 
         # dragging
         drag = =>
@@ -151,8 +138,10 @@ class TimeSlider
             # update brush 
             @brush.x(@scales.x).extent(@brush.extent())
 
-            # repaint the scales and the brush
-            draw()
+            # repaint the axis, scales and the brush
+            d3.select(@element).select('g.axis').call(@axis.x)
+            d3.select(@element).select('g.grid').call(@grid.x)
+            d3.select(@element).select('g.brush').call(@brush)
 
         d3.select(window).on('resize', resize)
 
@@ -221,7 +210,9 @@ class TimeSlider
             @brush.x(@scales.x).extent(@brush.extent())
 
             # repaint the scales and axis
-            draw()
+            d3.select(@element).select('g.axis').call(@axis.x)
+            d3.select(@element).select('g.grid').call(@grid.x)
+            d3.select(@element).select('g.brush').call(@brush)
 
             if @debug
                 console.log("Done zooming, took #{new Date().getTime() - time.start.getTime()} milliseconds.")
@@ -246,7 +237,7 @@ class TimeSlider
         end = new Date(params[1])
         end = @options.end if end > @options.end
 
-        d3.select(@element).select('.brush').call(@brush.extent([start, end]))
+        d3.select(@element).select('g.brush').call(@brush.extent([start, end]))
         true
     
 # Export the TimeSlider object for use in the browser
