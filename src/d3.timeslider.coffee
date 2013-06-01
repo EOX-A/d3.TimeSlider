@@ -16,29 +16,27 @@ class TimeSlider
 
         # create the root svg element
         svg = d3.select(element).append('svg').attr('class', 'timeslider')
+        @root = svg.append('g').attr('class', 'root')
 
         # default options and other variables for later
         @options.minPixelPerDay ||= 50
-        @options.width ||= @element.clientWidth
+        @options.width  = svg[0][0].clientWidth
         @options.height = svg[0][0].clientHeight
         @options.brush ||= {}
         @options.brush.start || = @options.start
         @options.brush.end ||= new Date(new Date(@options.brush.start).setDate(@options.brush.start.getDate() + 3))
-        @msToDays = 1000 * 60 * 60 * 24
-        @numberOfDays = Math.ceil( (@options.end.getTime() - @options.start.getTime()) / @msToDays )
+        # compute the number of days, (end - start / milliseconds per day)
+        @options.numberOfDays = Math.ceil( (@options.end.getTime() - @options.start.getTime()) / (1000 * 60 * 60 * 24) )
         @element.zoomLevel = 0
 
-        # create the root element
-        @root = svg.append('g').attr('class', 'root').attr('width', @options.width)
-
-        @options.pixelPerDay = (@options.width - 20) / @numberOfDays
+        @options.pixelPerDay = @options.width / @options.numberOfDays
         @options.pixelPerDay = @options.minPixelPerDay if @options.pixelPerDay < @options.minPixelPerDay
 
         # scales
         @scales =
             x: d3.time.scale.utc()
                 .domain([ @options.start, @options.end ])
-                .range([0, @numberOfDays * @options.pixelPerDay])
+                .range([0, @options.numberOfDays * @options.pixelPerDay])
             y: d3.scale.linear()
                 .range([ 0, @options.height ])
 
@@ -51,9 +49,12 @@ class TimeSlider
 
         @root.append('g')
             .attr('class', 'axis')
-            # TODO compute the 20px translation
-            .attr('transform', "translate(0, #{@options.height - 20})")
             .call(@axis.x)
+
+        # Compute the height of the x axis
+        @options.xAxisHeight = Math.ceil(@root.select('g.axis')[0][0].getBoundingClientRect().height)
+        d3.select(@element).select('g.axis')
+            .attr('transform', "translate(0, #{@options.height - @options.xAxisHeight})")
 
        # grid
         @grid =
@@ -61,14 +62,12 @@ class TimeSlider
                 .scale(@scales.x)
                 .ticks(d3.time.days.utc, 1)
                 .tickFormat('')
-                # TODO compute the 20px translation
-                .tickSize(-@options.height+20, 0, 0)
+                .tickSize(-@options.height + @options.xAxisHeight, 0, 0)
 
         @root.append('g')
             .attr('class', 'grid')
             .attr('width', @options.width)
-            # TODO compute the 20px translation
-            .attr('transform', "translate(0, #{@options.height - 20})")
+            .attr('transform', "translate(0, #{@options.height - @options.xAxisHeight})")
             .call(@grid.x)
 
         # brush
@@ -90,8 +89,7 @@ class TimeSlider
             .attr('class', 'brush')
             .call(@brush)
             .selectAll('rect')
-                # TODO remove hardcoded height
-                .attr('height', "#{@options.height - 20 - 2}px")
+                .attr('height', "#{@options.height - @options.xAxisHeight - 2}px")
                 .attr('y', 0)
 
         # dragging
@@ -109,14 +107,11 @@ class TimeSlider
                 element.dragging.position[1] += d3.event.pageY - element.dragging.lastPosition[1]
                 element.dragging.lastPosition = [d3.event.pageX, d3.event.pageY]
 
-                width = Math.ceil(d3.select(@element).select('svg').style('width').slice(0, -2))
-
                 # TODO Allow dragging over the boundaries, but snap back afterwards
                 if element.dragging.position[0] > 0
                     element.dragging.position[0] = 0
-                else if ((Number) element.dragging.position[0] + @scales.x.range()[1]) < width
-                    element.dragging.position[0] = width - @scales.x.range()[1]
-                    console.log("Dragging Position #{element.dragging.position}")
+                else if ((Number) element.dragging.position[0] + @scales.x.range()[1]) < @options.width
+                    element.dragging.position[0] = @options.width - @scales.x.range()[1]
                 @root.attr('transform', "translate(#{element.dragging.position[0]}, 0)")
             up = =>
                 d3.select(document)
@@ -136,14 +131,14 @@ class TimeSlider
         # resizing (the window)
         resize = =>
             # update the width of the element
-            @options.width = @element.clientWidth
+            @options.width = d3.select(@element).select('svg.timeslider')[0][0].clientWidth
 
             # calculate new size of a day
-            @options.pixelPerDay = (@options.width - 20) / @numberOfDays
+            @options.pixelPerDay = (@options.width - 20) / @options.numberOfDays
             @options.pixelPerDay = @options.minPixelPerDay if @options.pixelPerDay < @options.minPixelPerDay
 
             # update scale
-            @scales.x.range([0, @numberOfDays * @options.pixelPerDay])
+            @scales.x.range([0, @options.numberOfDays * @options.pixelPerDay])
 
             # update brush
             @brush.x(@scales.x).extent(@brush.extent())
@@ -177,7 +172,7 @@ class TimeSlider
             console.log("Zooming to level #{@element.zoomLevel}") if @debug
 
             # update scale
-            @scales.x.range([0, @numberOfDays * @options.pixelPerDay])
+            @scales.x.range([0, @options.numberOfDays * @options.pixelPerDay])
 
             # update axis
             # TODO make cleaner
