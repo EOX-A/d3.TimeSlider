@@ -8,6 +8,7 @@ class TimeSlider
     #  * Convert all dates to UTC
     #  * Center the brush
     #  * Limit brush to the time between start & end date
+    #  * TESTING
 
     constructor: (@element, @options = {}) ->
         # Debugging?
