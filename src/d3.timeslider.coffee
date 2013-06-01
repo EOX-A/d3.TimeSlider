@@ -71,7 +71,6 @@ class TimeSlider
             .call(@grid.x)
 
         # brush
-        element.dispatch = d3.dispatch('brushStart', 'brushEnd')
         @brush = d3.svg.brush()
             .x(@scales.x)
             .on('brushend', => 
