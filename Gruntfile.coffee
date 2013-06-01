@@ -43,7 +43,7 @@ module.exports = (grunt) ->
         sourceMapIn: 'build/d3.timeslider.js.map'
       compile:
         files:
-          'build/d3.timeslider.min.js': ['build/*.js']
+          'build/d3.timeslider.min.js': ['build/d3.timeslider.js']
     less:
       development:
         files:
@@ -55,5 +55,5 @@ module.exports = (grunt) ->
             'build/d3.timeslider.min.css': 'src/*.less'
     }
 
-  grunt.registerTask('default', ['coffee', 'uglify', 'less'])
+  grunt.registerTask('default', ['lint', 'coffee', 'uglify', 'less'])
   grunt.registerTask('lint', ['coffeelint'])
