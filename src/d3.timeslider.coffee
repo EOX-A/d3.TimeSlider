@@ -34,7 +34,7 @@ class TimeSlider
         @options.pixelPerDay = @options.minPixelPerDay if @options.pixelPerDay < @options.minPixelPerDay
 
         # scales
-        @scales = 
+        @scales =
             x: d3.time.scale.utc()
                 .domain([ @options.start, @options.end ])
                 .range([0, @numberOfDays * @options.pixelPerDay])
@@ -42,7 +42,7 @@ class TimeSlider
                 .range([ 0, @options.height ])
 
         # axis
-        @axis = 
+        @axis =
             x: d3.svg.axis()
                 .scale(@scales.x)
                 .ticks(d3.time.days.utc, 3)
@@ -55,7 +55,7 @@ class TimeSlider
             .call(@axis.x)
 
        # grid
-        @grid = 
+        @grid =
             x: d3.svg.axis()
                 .scale(@scales.x)
                 .ticks(d3.time.days.utc, 1)
@@ -71,18 +71,18 @@ class TimeSlider
             .call(@grid.x)
 
         # brush
+        event = =>
+            new CustomEvent('selectionChanged', {
+                detail: {
+                    start: @brush.extent()[0],
+                    end: @brush.extent()[1]
+                }
+                bubbles: true,
+                cancelable: true
+            })
         @brush = d3.svg.brush()
             .x(@scales.x)
-            .on('brushend', => 
-                element.dispatchEvent(new CustomEvent('selectionChanged', { 
-                    detail: {
-                        start: @brush.extent()[0],
-                        end: @brush.extent()[1]
-                    }
-                    bubbles: true, 
-                    cancelable: true 
-                }))
-            )
+            .on('brushend', => element.dispatchEvent(event()))
             .extent([@options.brush.start, @options.brush.end])
 
         @root.append('g')
@@ -103,26 +103,28 @@ class TimeSlider
 
             # register event handlers for mousemove (to handle the real dragging logic) and mouseup
             # to deregister unneeded handlers
+            move = =>
+                element.dragging.position[0] += d3.event.pageX - element.dragging.lastPosition[0]
+                element.dragging.position[1] += d3.event.pageY - element.dragging.lastPosition[1]
+                element.dragging.lastPosition = [d3.event.pageX, d3.event.pageY]
+
+                width = Math.ceil(d3.select(@element).select('svg').style('width').slice(0, -2))
+
+                # TODO Allow dragging over the boundaries, but snap back afterwards
+                if element.dragging.position[0] > 0
+                    element.dragging.position[0] = 0
+                else if ((Number) element.dragging.position[0] + @scales.x.range()[1]) < width
+                    element.dragging.position[0] = width - @scales.x.range()[1]
+                    console.log("Dragging Position #{element.dragging.position}")
+                @root.attr('transform', "translate(#{element.dragging.position[0]}, 0)")
+            up = =>
+                d3.select(document)
+                    .on('mousemove', null)
+                    .on('mouseup', null)
+
             d3.select(document)
-                .on('mousemove', =>
-                    element.dragging.position[0] += d3.event.pageX - element.dragging.lastPosition[0]
-                    element.dragging.position[1] += d3.event.pageY - element.dragging.lastPosition[1]
-                    element.dragging.lastPosition = [d3.event.pageX, d3.event.pageY]
-
-                    width = Math.ceil(d3.select(@element).select('svg').style('width').slice(0, -2))
-
-                    # TODO Allow dragging over the boundaries, but snap back afterwards
-                    if element.dragging.position[0] > 0
-                        element.dragging.position[0] = 0
-                    else if ((Number) element.dragging.position[0] + @scales.x.range()[1]) < width
-                        element.dragging.position[0] = width - @scales.x.range()[1]
-                        console.log("Dragging Position #{element.dragging.position}")
-                    @root.attr('transform', "translate(#{element.dragging.position[0]}, 0)") 
-
-                )
-                .on('mouseup', =>
-                    d3.select(document).on('mousemove', null).on('mouseup', null)
-                )
+                .on('mousemove', => move())
+                .on('mouseup', => up())
 
             # prevent default events
             d3.event.preventDefault()
@@ -139,10 +141,10 @@ class TimeSlider
             @options.pixelPerDay = (@options.width - 20) / @numberOfDays
             @options.pixelPerDay = @options.minPixelPerDay if @options.pixelPerDay < @options.minPixelPerDay
 
-            # update scale 
+            # update scale
             @scales.x.range([0, @numberOfDays * @options.pixelPerDay])
 
-            # update brush 
+            # update brush
             @brush.x(@scales.x).extent(@brush.extent())
 
             # repaint the axis, scales and the brush
@@ -152,7 +154,7 @@ class TimeSlider
 
         d3.select(window).on('resize', resize)
 
-        # zooming 
+        # zooming
         # (done via a seperate function, because we need to bind to two differen event listeners)
         zoom = =>
             if @debug
@@ -173,12 +175,12 @@ class TimeSlider
 
             console.log("Zooming to level #{@element.zoomLevel}") if @debug
 
-            # update scale 
+            # update scale
             @scales.x.range([0, @numberOfDays * @options.pixelPerDay])
 
             # update axis
             # TODO make cleaner
-            switch 
+            switch
                 when @element.zoomLevel < -7
                     @axis.x.ticks(d3.time.months.utc, 2).tickFormat(d3.time.format.utc('%Y-%m'))
                     @grid.x.ticks(d3.time.months.utc, 1)
@@ -199,7 +201,7 @@ class TimeSlider
                     @grid.x.ticks(d3.time.days.utc, 1)
                 when @element.zoomLevel < 4
                     @axis.x.ticks(d3.time.days.utc, 1).tickFormat(d3.time.format.utc('%Y-%m-%d'))
-                    @grid.x.ticks(d3.time.hours.utc, 6)                
+                    @grid.x.ticks(d3.time.hours.utc, 6)
                 when @element.zoomLevel <= 5
                     @axis.x.ticks(d3.time.hours.utc, 12).tickFormat(d3.time.format.utc('%Y-%m-%d %I:%M'))
                     @grid.x.ticks(d3.time.hours.utc, 3)
@@ -213,7 +215,7 @@ class TimeSlider
                     @axis.x.ticks(d3.time.minutes.utc, 90).tickFormat(d3.time.format.utc('%Y-%m-%d %I:%M'))
                     @grid.x.ticks(d3.time.minutes.utc, 30)
 
-            # update brush 
+            # update brush
             @brush.x(@scales.x).extent(@brush.extent())
 
             # repaint the scales and axis
@@ -246,6 +248,6 @@ class TimeSlider
 
         d3.select(@element).select('g.brush').call(@brush.extent([start, end]))
         true
-    
+
 # Export the TimeSlider object for use in the browser
 this.TimeSlider = TimeSlider
