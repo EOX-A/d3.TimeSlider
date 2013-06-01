@@ -11,7 +11,7 @@ module.exports = (grunt) ->
     watch:
       options:
         livereload: true
-      coffee: 
+      coffee:
         files: 'src/*.coffee',
         tasks: 'coffee'
       less:
@@ -26,8 +26,10 @@ module.exports = (grunt) ->
           'build/d3.timeslider.js': 'src/*.coffee'
     coffeelint:
       options:
-        indentation: 
+        indentation:
           value: 4
+        max_line_length:
+          value: 120
       app: 'src/*.coffee'
     uglify:
       options:
