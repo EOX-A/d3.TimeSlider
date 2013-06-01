@@ -1,0 +1,30 @@
+{
+  "name": "D3.TimeSlider",
+  "version": "0.0.1",
+  "description": "A D3.js based time slider",
+  "homepage": "https://github.com/EOX-A/d3.TimeSlider",
+  "author": {
+    "name": "EOX IT Services GmbH",
+    "url": "http://eox.at/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/EOX-A/d3.TimeSlider.git"
+  },
+  "bugs": {
+    "url": "https://github.com/EOX-A/d3.TimeSlider/issues"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/EOX-A/d3.TimeSlider/blob/master/License"
+    }
+  ],
+  "devDependencies": {
+    "grunt": "~0.4.1",
+    "grunt-contrib-coffee": "~0.7.0",
+    "grunt-contrib-uglify": "~0.2.2",
+    "grunt-coffeelint": "0.0.6",
+    "grunt-contrib-less": "~0.5.2"
+  }
+}

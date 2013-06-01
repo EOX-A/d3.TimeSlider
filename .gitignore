@@ -4,3 +4,6 @@
 
 # OS X specific files
 .DS_Store
+
+# Grunt
+/node_modules/
