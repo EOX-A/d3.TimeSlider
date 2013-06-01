@@ -7,7 +7,7 @@ library. It is written in [CoffeeScript](http://coffeescript.org) and
 The software is licensed under a MIT compatible license, for more information see
 [License](License)
 
-# Development
+## Development
 
 Install development dependencies, and start grunt via the following two commands.
 
