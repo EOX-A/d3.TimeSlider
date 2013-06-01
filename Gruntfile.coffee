@@ -55,5 +55,5 @@ module.exports = (grunt) ->
             'build/d3.timeslider.min.css': 'src/*.less'
     }
 
-  grunt.registerTask('default', ['lint', 'coffee', 'uglify', 'less'])
+  grunt.registerTask('default', ['lint', 'coffee', 'uglify', 'less:production'])
   grunt.registerTask('lint', ['coffeelint'])
