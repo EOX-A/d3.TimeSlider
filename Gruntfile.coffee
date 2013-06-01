@@ -1,8 +1,6 @@
 module.exports = (grunt) ->
-  # TODO
-  #  * Take a look at https://github.com/gruntjs/grunt-contrib-compress
-
   # load plugins
+  grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-contrib-coffee')
   grunt.loadNpmTasks('grunt-contrib-less');
   grunt.loadNpmTasks('grunt-contrib-uglify');
@@ -10,6 +8,15 @@ module.exports = (grunt) ->
 
   grunt.initConfig {
     pkg: grunt.file.readJSON('package.json'),
+    watch:
+      options:
+        livereload: true
+      coffee: 
+        files: 'src/*.coffee',
+        tasks: 'coffee'
+      less:
+        files: 'src/*.less',
+        tasks: 'less:development'
     coffee:
       compile:
         options:
