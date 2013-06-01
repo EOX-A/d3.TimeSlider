@@ -74,8 +74,16 @@ class TimeSlider
         element.dispatch = d3.dispatch('brushStart', 'brushEnd')
         @brush = d3.svg.brush()
             .x(@scales.x)
-            .on('brushstart', => element.dispatch.brushStart(@brush.extent()))
-            .on('brushend', => element.dispatch.brushEnd(@brush.extent()))
+            .on('brushend', => 
+                element.dispatchEvent(new CustomEvent('selectionChanged', { 
+                    detail: {
+                        start: @brush.extent()[0],
+                        end: @brush.extent()[1]
+                    }
+                    bubbles: true, 
+                    cancelable: true 
+                }))
+            )
             .extent([@options.brush.start, @options.brush.end])
 
         @root.append('g')
