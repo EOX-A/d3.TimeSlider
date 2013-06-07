@@ -6,8 +6,6 @@ class TimeSlider
     #  * Cleanup the mess that is the axis labels right now
     #  * Compute the padding at the left & right of the timeslider
     #  * Convert all dates to UTC
-    #  * Center the brush
-    #  * Limit brush to the time between start & end date
     #  * TESTING
 
     constructor: (@element, @options = {}) ->
