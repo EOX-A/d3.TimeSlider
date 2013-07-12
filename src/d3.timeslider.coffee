@@ -2,6 +2,7 @@ class TimeSlider
 
     # TODO
     #  * Allow for the registration of datasets to be shown beneath the brush
+    #    * WCS  DescribeEOCoverageSet (using libcoveragejs (schindlerf))
     #  * Rename pixelPerDay to something more generic (could also be hours, ... depending on the time frame)
     #  * Cleanup the mess that is the axis labels right now
     #  * Compute the padding at the left & right of the timeslider
