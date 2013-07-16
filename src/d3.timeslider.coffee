@@ -69,6 +69,52 @@ class TimeSlider
             .attr('transform', "translate(0, #{@options.height - @options.xAxisHeight})")
             .call(@grid.x)
 
+        # datasets
+        @root.append('g')
+            .attr('class', 'datasets')
+            .attr('width', @options.width)
+            .attr('height', @options.height)
+            .attr('transform', "translate(0, 5)")
+
+        drawDataset = (dataset, index) =>
+            @root.select('g.datasets')
+                .append('g')
+                    .attr('class', 'dataset')
+                    .attr('id', "dataset-#{dataset.id}")
+            el = @root.select("g.datasets #dataset-#{dataset.id}")
+            circles = []
+            lines = []
+
+            for data in dataset.data()
+                if(data.length > 1)
+                    lines.push data
+                else
+                    circles.push data[0]
+
+            lineFunction = d3.svg.line()
+                .x( (d) => @scales.x(d) )
+                .y( 5 * index )
+                .interpolate('linear')
+
+            el.selectAll('path')
+                .data(lines)
+                .enter().append('path')
+                    .attr('d', lineFunction)
+                    .attr('stroke', dataset.color)
+                    .attr('stroke-width', 2)
+
+            el.selectAll('circle')
+                .data(circles)
+                .enter().append('circle')
+                    .attr('cx', (d) => @scales.x(d))
+                    .attr('cy', "#{5 * index}")
+                    .attr('r', 2)
+                    .attr('fill', dataset.color)
+
+        for dataset, index in @options.datasets
+            do (dataset, index) ->
+                drawDataset(dataset, index)
+
         # brush
         event = =>
             new CustomEvent('selectionChanged', {
@@ -217,6 +263,8 @@ class TimeSlider
             d3.select(@element).select('g.axis').call(@axis.x)
             d3.select(@element).select('g.grid').call(@grid.x)
             d3.select(@element).select('g.brush').call(@brush)
+
+            # repaint the datasets
 
             if @debug
                 console.log("Done zooming, took #{new Date().getTime() - time.start.getTime()} milliseconds.")
