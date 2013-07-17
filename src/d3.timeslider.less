@@ -11,9 +11,7 @@ svg.timeslider {
   border-radius:  4px;
 
   .axis {
-    path, line {
-      fill: none;
-    }
+    fill: none;
 
     .tick.minor {
       stroke: rgba(100, 100, 100, 0.25);
@@ -23,21 +21,22 @@ svg.timeslider {
     .tick.major {
       stroke: rgba(100, 100, 100, 1);
       shape-rendering: crispEdges;
-    }
-    .tick.major text {
-      stroke: rgb(0, 0, 0);
-      font: .7em sans-serif;
-      shape-rendering: geometricPrecision;
+
+      text {
+        stroke: rgb(0, 0, 0);
+        font: .7em sans-serif;
+      }
     }
 
     .domain {
       stroke: rgba(100, 100, 100, 1);
       shape-rendering: crispEdges;
     }
-
   }
 
-  .brush .extent {
-    opacity: .8;
+  .brush {
+    .extent {
+      opacity: .6;
+    }
   }
 }
