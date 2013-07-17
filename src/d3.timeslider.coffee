@@ -54,7 +54,7 @@ class TimeSlider
             .attr('class', 'datasets')
             .attr('width', @options.width)
             .attr('height', @options.height)
-            .attr('transform', "translate(0, 5)")
+            .attr('transform', "translate(0, #{options.height - 18})")
 
         drawDataset = (dataset, index) =>
             @root.select('g.datasets')
@@ -88,7 +88,7 @@ class TimeSlider
 
             lineFunction = d3.svg.line()
                 .x( (d) => @scales.x(d) )
-                .y( 5 * d.index )
+                .y( -5 * d.index )
                 .interpolate('linear')
 
             # ranges
@@ -111,7 +111,7 @@ class TimeSlider
 
             p.enter().append('circle')
                     .attr('cx', (d) => @scales.x(d))
-                    .attr('cy', "#{5 * d.index}")
+                    .attr('cy', "#{-5 * d.index}")
                     .attr('r', 2)
                     .attr('fill', d.color)
 
