@@ -194,12 +194,8 @@ class TimeSlider
             # update the width of the element
             @options.width = d3.select(@element).select('svg.timeslider')[0][0].clientWidth
 
-            # calculate new size of a day
-            @options.pixelPerDay = (@options.width - 20) / @options.numberOfDays
-            @options.pixelPerDay = @options.minPixelPerDay if @options.pixelPerDay < @options.minPixelPerDay
-
             # update scale
-            @scales.x.range([0, @options.numberOfDays * @options.pixelPerDay])
+            @scales.x.range([0, @options.width])
 
             # update brush
             @brush.x(@scales.x).extent(@brush.extent())
@@ -207,6 +203,10 @@ class TimeSlider
             # repaint the axis, scales and the brush
             d3.select(@element).select('g.axis').call(@axis.x)
             d3.select(@element).select('g.brush').call(@brush)
+
+            # repaint the datasets
+            for dataset of @data
+                @updateDataset(dataset)
 
         d3.select(window).on('resize', resize)
 
