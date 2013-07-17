@@ -132,7 +132,16 @@ class TimeSlider
             })
         @brush = d3.svg.brush()
             .x(@scales.x)
-            .on('brushend', => element.dispatchEvent(event()))
+            .on('brushstart', =>
+                @root.call(@options.zoom.on('zoom', null))
+            )
+            .on('brushend', =>
+                element.dispatchEvent(event())
+                if @options.lastZoom?
+                    @root.call(@options.zoom.scale(@options.lastZoom.scale()).translate(@options.lastZoom.translate()).on('zoom', zoom))
+                else
+                    @root.call(@options.zoom.on('zoom', zoom))
+            )
             .extent([@options.brush.start, @options.brush.end])
 
         @root.append('g')
@@ -176,7 +185,10 @@ class TimeSlider
             for dataset of @data
                 @updateDataset(dataset)
 
-        @root.call(d3.behavior.zoom().x(@scales.x).on('zoom', zoom))
+            @options.lastZoom = @options.zoom
+
+        @options.zoom = d3.behavior.zoom().x(@scales.x).on('zoom', zoom)
+        @root.call(@options.zoom)
 
     # Function pair to allow for easy hiding and showing the time slider
     hide: ->
