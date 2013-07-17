@@ -49,6 +49,37 @@ class TimeSlider
         d3.select(@element).select('g.axis .domain')
             .attr('transform', "translate(0, #{options.height - 13})scale(1, -1)")
 
+        # brush
+        @brush = d3.svg.brush()
+            .x(@scales.x)
+            .on('brushstart', =>
+                @root.call(@options.zoom.on('zoom', null))
+            )
+            .on('brushend', =>
+                element.dispatchEvent(
+                    new CustomEvent('selectionChanged', {
+                        detail: {
+                            start: @brush.extent()[0],
+                            end: @brush.extent()[1]
+                        }
+                        bubbles: true,
+                        cancelable: true
+                    })
+                )
+                if @options.lastZoom?
+                    @root.call(@options.zoom.scale(@options.lastZoom.scale()).translate(@options.lastZoom.translate()).on('zoom', zoom))
+                else
+                    @root.call(@options.zoom.on('zoom', zoom))
+            )
+            .extent([@options.brush.start, @options.brush.end])
+
+        @root.append('g')
+            .attr('class', 'brush')
+            .call(@brush)
+            .selectAll('rect')
+                .attr('height', "#{@options.height - 15}")
+                .attr('y', 0)
+
         # datasets
         @root.append('g')
             .attr('class', 'datasets')
@@ -119,37 +150,6 @@ class TimeSlider
         for dataset, index in @options.datasets
             do (dataset, index) ->
                 drawDataset(dataset, index)
-
-        # brush
-        event = =>
-            new CustomEvent('selectionChanged', {
-                detail: {
-                    start: @brush.extent()[0],
-                    end: @brush.extent()[1]
-                }
-                bubbles: true,
-                cancelable: true
-            })
-        @brush = d3.svg.brush()
-            .x(@scales.x)
-            .on('brushstart', =>
-                @root.call(@options.zoom.on('zoom', null))
-            )
-            .on('brushend', =>
-                element.dispatchEvent(event())
-                if @options.lastZoom?
-                    @root.call(@options.zoom.scale(@options.lastZoom.scale()).translate(@options.lastZoom.translate()).on('zoom', zoom))
-                else
-                    @root.call(@options.zoom.on('zoom', zoom))
-            )
-            .extent([@options.brush.start, @options.brush.end])
-
-        @root.append('g')
-            .attr('class', 'brush')
-            .call(@brush)
-            .selectAll('rect')
-                .attr('height', "#{@options.height - 15}")
-                .attr('y', 0)
 
         # resizing (the window)
         resize = =>
