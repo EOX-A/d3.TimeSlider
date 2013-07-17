@@ -99,7 +99,6 @@ class TimeSlider
             r.enter().append('path')
                 .attr('d', lineFunction)
                 .attr('stroke', d.color)
-                .attr('stroke-width', 2)
 
             r.exit().remove()
 
@@ -112,7 +111,6 @@ class TimeSlider
             p.enter().append('circle')
                     .attr('cx', (d) => @scales.x(d))
                     .attr('cy', "#{-5 * d.index}")
-                    .attr('r', 2)
                     .attr('fill', d.color)
 
             p.exit().remove()
