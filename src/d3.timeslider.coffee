@@ -38,7 +38,7 @@ class TimeSlider
         @scales =
             x: d3.time.scale.utc()
                 .domain([ @options.start, @options.end ])
-                .range([0, @options.numberOfDays * @options.pixelPerDay])
+                .range([0, @options.width])
             y: d3.scale.linear()
                 .range([ 0, @options.height ])
 
@@ -46,31 +46,16 @@ class TimeSlider
         @axis =
             x: d3.svg.axis()
                 .scale(@scales.x)
-                .ticks(d3.time.days.utc, 3)
-                #.tickFormat(d3.time.format("%Y-%m-%d"))
+                .tickSubdivide(3)
+                .tickSize(@options.height - 13)
 
         @root.append('g')
             .attr('class', 'axis')
             .call(@axis.x)
 
-        # Compute the height of the x axis
-        @options.xAxisHeight = Math.ceil(@root.select('g.axis')[0][0].getBoundingClientRect().height)
-        d3.select(@element).select('g.axis')
-            .attr('transform', "translate(0, #{@options.height - @options.xAxisHeight})")
-
-       # grid
-        @grid =
-            x: d3.svg.axis()
-                .scale(@scales.x)
-                .ticks(d3.time.days.utc, 1)
-                .tickFormat('')
-                .tickSize(-@options.height + @options.xAxisHeight, 0, 0)
-
-        @root.append('g')
-            .attr('class', 'grid')
-            .attr('width', @options.width)
-            .attr('transform', "translate(0, #{@options.height - @options.xAxisHeight})")
-            .call(@grid.x)
+        # translate the main x axis
+        d3.select(@element).select('g.axis .domain')
+            .attr('transform', "translate(0, #{options.height - 14})")
 
         # datasets
         @root.append('g')
@@ -94,25 +79,30 @@ class TimeSlider
                 ranges: []
             }
 
-            updateDataset(dataset)
+            @updateDataset(dataset.id)
 
-        updateDataset = (dataset) =>
-            el = @root.select("g.datasets #dataset-#{dataset.id}")
-            d = @data[dataset.id]
+        @updateDataset = (dataset) =>
+            console.log "Updating dataset #{dataset}"
+
+            el = @root.select("g.datasets #dataset-#{dataset}")
+            d = @data[dataset]
 
             # update data
+            d.ranges = []
+            d.points = []
             for data in d.callback()
                 if(data.length > 1)
-                    @data[dataset.id].ranges.push data
+                    d.ranges.push data
                 else
-                    @data[dataset.id].points.push data[0]
+                    d.points.push data[0]
 
             lineFunction = d3.svg.line()
                 .x( (d) => @scales.x(d) )
-                .y( 5 * index )
+                .y( 5 * d.index )
                 .interpolate('linear')
 
             # ranges
+            el.selectAll('path').remove()
             r = el.selectAll('path')
                 .data(d.ranges)
 
@@ -124,8 +114,10 @@ class TimeSlider
             r.exit().remove()
 
             # points
+            el.selectAll('circle').remove()
             p = el.selectAll('circle')
                 .data(d.points)
+                .remove()
 
             p.enter().append('circle')
                     .attr('cx', (d) => @scales.x(d))
@@ -158,7 +150,7 @@ class TimeSlider
             .attr('class', 'brush')
             .call(@brush)
             .selectAll('rect')
-                .attr('height', "#{@options.height - @options.xAxisHeight - 2}px")
+                .attr('height', "#{@options.height - 15}")
                 .attr('y', 0)
 
         # dragging
@@ -214,7 +206,6 @@ class TimeSlider
 
             # repaint the axis, scales and the brush
             d3.select(@element).select('g.axis').call(@axis.x)
-            d3.select(@element).select('g.grid').call(@grid.x)
             d3.select(@element).select('g.brush').call(@brush)
 
         d3.select(window).on('resize', resize)
@@ -223,16 +214,16 @@ class TimeSlider
         zoom = =>
             console.log "Scale #{d3.event.scale}, Translate #{d3.event.translate}"
 
-            d3.select(@element).selectAll('path')
-                .attr('transform', "translate(#{d3.event.translate[0]}, 0)scale(#{d3.event.scale}, 1)")
-            d3.select(@element).selectAll('circle')
-                .attr('transform', "translate(#{d3.event.translate[0] * d3.event.scale}, 0)")
+            # update axis & grids
+
+
+            # repaint the datasets
+            for dataset of @data
+                @updateDataset(dataset)
 
             # repaint the scales and the axis
             d3.select(@element).select('g.axis').call(@axis.x)
-            d3.select(@element).select('g.grid').call(@grid.x)
             d3.select(@element).select('g.brush').call(@brush)
-
 
         @root.call(d3.behavior.zoom().x(@scales.x).on('zoom', zoom))
 
