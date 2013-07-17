@@ -31,6 +31,9 @@ class TimeSlider
         @options.pixelPerDay = @options.width / @options.numberOfDays
         @options.pixelPerDay = @options.minPixelPerDay if @options.pixelPerDay < @options.minPixelPerDay
 
+        # array to hold individual data points / data ranges
+        @data = {}
+
         # scales
         @scales =
             x: d3.time.scale.utc()
@@ -82,34 +85,55 @@ class TimeSlider
                     .attr('class', 'dataset')
                     .attr('id', "dataset-#{dataset.id}")
             el = @root.select("g.datasets #dataset-#{dataset.id}")
-            circles = []
-            lines = []
 
-            for data in dataset.data()
+            @data[dataset.id] = {
+                index: index,
+                color: dataset.color,
+                callback: dataset.data,
+                points: [],
+                ranges: []
+            }
+
+            updateDataset(dataset)
+
+        updateDataset = (dataset) =>
+            el = @root.select("g.datasets #dataset-#{dataset.id}")
+            d = @data[dataset.id]
+
+            # update data
+            for data in d.callback()
                 if(data.length > 1)
-                    lines.push data
+                    @data[dataset.id].ranges.push data
                 else
-                    circles.push data[0]
+                    @data[dataset.id].points.push data[0]
 
             lineFunction = d3.svg.line()
                 .x( (d) => @scales.x(d) )
                 .y( 5 * index )
                 .interpolate('linear')
 
-            el.selectAll('path')
-                .data(lines)
-                .enter().append('path')
-                    .attr('d', lineFunction)
-                    .attr('stroke', dataset.color)
-                    .attr('stroke-width', 2)
+            # ranges
+            r = el.selectAll('path')
+                .data(d.ranges)
 
-            el.selectAll('circle')
-                .data(circles)
-                .enter().append('circle')
+            r.enter().append('path')
+                .attr('d', lineFunction)
+                .attr('stroke', d.color)
+                .attr('stroke-width', 2)
+
+            r.exit().remove()
+
+            # points
+            p = el.selectAll('circle')
+                .data(d.points)
+
+            p.enter().append('circle')
                     .attr('cx', (d) => @scales.x(d))
-                    .attr('cy', "#{5 * index}")
+                    .attr('cy', "#{5 * d.index}")
                     .attr('r', 2)
-                    .attr('fill', dataset.color)
+                    .attr('fill', d.color)
+
+            p.exit().remove()
 
         for dataset, index in @options.datasets
             do (dataset, index) ->
