@@ -10,21 +10,24 @@ svg.timeslider {
   border: 1px solid white;
   border-radius:  4px;
 
-  .axis path,
-  .axis line {
-    fill: none;
-    stroke: black;
-    shape-rendering: crispEdges;
-  }
-  .axis text {
-    font: bolder .7em sans-serif;
+  .axis {
+    path, line {
+      fill: none;
+      stroke: black;
+      shape-rendering: crispEdges;
+    }
+
+    text {
+      font: bolder .7em sans-serif;
+    }
   }
 
-  .grid path,
-  .grid line {
-    fill: none;
-    stroke: rgba(100,100,100,0.25);
-    shape-rendering: crispEdges;
+  .grid {
+    path, line {
+      fill: none;
+      stroke: rgba(100,100,100,0.25);
+      shape-rendering: crispEdges;
+    }
   }
 
   .brush .extent {
