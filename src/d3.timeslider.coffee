@@ -82,8 +82,6 @@ class TimeSlider
             @updateDataset(dataset.id)
 
         @updateDataset = (dataset) =>
-            console.log "Updating dataset #{dataset}"
-
             el = @root.select("g.datasets #dataset-#{dataset}")
             d = @data[dataset]
 
@@ -212,18 +210,13 @@ class TimeSlider
 
         # zooming
         zoom = =>
-            console.log "Scale #{d3.event.scale}, Translate #{d3.event.translate}"
-
-            # update axis & grids
-
+            # repaint the scales and the axis
+            d3.select(@element).select('g.axis').call(@axis.x)
+            d3.select(@element).select('g.brush').call(@brush)
 
             # repaint the datasets
             for dataset of @data
                 @updateDataset(dataset)
-
-            # repaint the scales and the axis
-            d3.select(@element).select('g.axis').call(@axis.x)
-            d3.select(@element).select('g.brush').call(@brush)
 
         @root.call(d3.behavior.zoom().x(@scales.x).on('zoom', zoom))
 
