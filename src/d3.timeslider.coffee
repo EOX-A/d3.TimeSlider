@@ -112,6 +112,7 @@ class TimeSlider
                     .attr('cx', (d) => @scales.x(d))
                     .attr('cy', "#{-5 * d.index}")
                     .attr('fill', d.color)
+                    .attr('r', 2)
 
             p.exit().remove()
 
@@ -164,7 +165,6 @@ class TimeSlider
 
         # zooming & dragging
         zoom = =>
-            console.log d3.event
             # repaint the scales and the axis
             d3.select(@element).select('g.axis').call(@axis.x)
 
