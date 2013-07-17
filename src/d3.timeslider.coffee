@@ -3,7 +3,6 @@ class TimeSlider
     # TODO
     #  * Allow for the registration of datasets to be shown beneath the brush
     #    * WCS  DescribeEOCoverageSet (using libcoveragejs (schindlerf))
-    #  * Rename pixelPerDay to something more generic (could also be hours, ... depending on the time frame)
     #  * Cleanup the mess that is the axis labels right now
     #  * Compute the padding at the left & right of the timeslider
     #  * Convert all dates to UTC
@@ -18,18 +17,11 @@ class TimeSlider
         @root = svg.append('g').attr('class', 'root')
 
         # default options and other variables for later
-        @options.minPixelPerDay ||= 50
         @options.width  = svg[0][0].clientWidth
         @options.height = svg[0][0].clientHeight
         @options.brush ||= {}
         @options.brush.start || = @options.start
         @options.brush.end ||= new Date(new Date(@options.brush.start).setDate(@options.brush.start.getDate() + 3))
-        # compute the number of days, (end - start / milliseconds per day)
-        @options.numberOfDays = Math.ceil( (@options.end.getTime() - @options.start.getTime()) / (1000 * 60 * 60 * 24) )
-        @element.zoomLevel = 0
-
-        @options.pixelPerDay = @options.width / @options.numberOfDays
-        @options.pixelPerDay = @options.minPixelPerDay if @options.pixelPerDay < @options.minPixelPerDay
 
         # array to hold individual data points / data ranges
         @data = {}
