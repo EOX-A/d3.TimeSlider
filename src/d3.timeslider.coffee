@@ -55,7 +55,7 @@ class TimeSlider
 
         # translate the main x axis
         d3.select(@element).select('g.axis .domain')
-            .attr('transform', "translate(0, #{options.height - 14})")
+            .attr('transform', "translate(0, #{options.height - 13})scale(1, -1)")
 
         # datasets
         @root.append('g')
