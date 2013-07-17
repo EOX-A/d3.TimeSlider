@@ -13,21 +13,28 @@ svg.timeslider {
   .axis {
     path, line {
       fill: none;
-      stroke: black;
+    }
+
+    .tick.minor {
+      stroke: rgba(100, 100, 100, 0.25);
       shape-rendering: crispEdges;
     }
 
-    text {
-      font: bolder .7em sans-serif;
-    }
-  }
-
-  .grid {
-    path, line {
-      fill: none;
-      stroke: rgba(100,100,100,0.25);
+    .tick.major {
+      stroke: rgba(100, 100, 100, 1);
       shape-rendering: crispEdges;
     }
+    .tick.major text {
+      stroke: rgb(0, 0, 0);
+      font: .7em sans-serif;
+      shape-rendering: geometricPrecision;
+    }
+
+    .domain {
+      stroke: rgba(100, 100, 100, 1);
+      shape-rendering: crispEdges;
+    }
+
   }
 
   .brush .extent {
