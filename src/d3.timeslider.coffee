@@ -141,42 +141,6 @@ class TimeSlider
                 .attr('height', "#{@options.height - 15}")
                 .attr('y', 0)
 
-        # dragging
-        drag = =>
-            # init
-            element.dragging = { position: [0, 0] } unless element.dragging
-
-            # set last position of the curser
-            element.dragging.lastPosition = [d3.event.pageX, d3.event.pageY]
-
-            # register event handlers for mousemove (to handle the real dragging logic) and mouseup
-            # to deregister unneeded handlers
-            move = =>
-                element.dragging.position[0] += d3.event.pageX - element.dragging.lastPosition[0]
-                element.dragging.position[1] += d3.event.pageY - element.dragging.lastPosition[1]
-                element.dragging.lastPosition = [d3.event.pageX, d3.event.pageY]
-
-                # TODO Allow dragging over the boundaries, but snap back afterwards
-                if element.dragging.position[0] > 0
-                    element.dragging.position[0] = 0
-                else if ((Number) element.dragging.position[0] + @scales.x.range()[1]) < @options.width
-                    element.dragging.position[0] = @options.width - @scales.x.range()[1]
-                @root.attr('transform', "translate(#{element.dragging.position[0]}, 0)")
-            up = =>
-                d3.select(document)
-                    .on('mousemove', null)
-                    .on('mouseup', null)
-
-            d3.select(document)
-                .on('mousemove', => move())
-                .on('mouseup', => up())
-
-            # prevent default events
-            d3.event.preventDefault()
-            d3.event.stopPropagation()
-
-        d3.select(element).on('mousedown', drag)
-
         # resizing (the window)
         resize = =>
             # update the width of the element
@@ -198,11 +162,15 @@ class TimeSlider
 
         d3.select(window).on('resize', resize)
 
-        # zooming
+        # zooming & dragging
         zoom = =>
+            console.log d3.event
             # repaint the scales and the axis
             d3.select(@element).select('g.axis').call(@axis.x)
-            d3.select(@element).select('g.brush').call(@brush)
+
+            # translate and scale the brush if needed
+            d3.select(@element).select('g.brush')
+                .attr('transform', "translate(#{d3.event.translate[0]},0),scale(#{d3.event.scale},1)")
 
             # repaint the datasets
             for dataset of @data
