@@ -124,18 +124,18 @@ class TimeSlider
                 else
                     d.points.push data[0]
 
-            lineFunction = d3.svg.line()
-                .x( (d) => @scales.x(d) )
-                .y( -5 * d.index )
-                .interpolate('linear')
-
             # ranges
             el.selectAll('path').remove()
             r = el.selectAll('path')
                 .data(d.ranges)
 
             r.enter().append('path')
-                .attr('d', lineFunction)
+                .attr('d',
+                    d3.svg.line()
+                        .x( (d) => @scales.x(d) )
+                        .y( -5 * d.index )
+                        .interpolate('linear')
+                    )
                 .attr('stroke', d.color)
 
             r.exit().remove()
