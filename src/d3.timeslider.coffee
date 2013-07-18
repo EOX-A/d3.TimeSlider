@@ -61,8 +61,10 @@ class TimeSlider
                 @options.zoom.on('zoom', null)
             )
             .on('brushend', =>
-                @options.zoom.scale(@options.lastZoom.scale)
-                    .translate(@options.lastZoom.translate).on('zoom', zoom)
+                @options.zoom
+                    .scale(@options.lastZoom.scale)
+                    .translate(@options.lastZoom.translate)
+                    .on('zoom', zoom)
                 element.dispatchEvent(
                     new CustomEvent('selectionChanged', {
                         detail: {
@@ -181,7 +183,10 @@ class TimeSlider
         zoom = =>
             redraw()
 
-        @options.zoom = d3.behavior.zoom().x(@scales.x).on('zoom', zoom)
+        @options.zoom = d3.behavior.zoom()
+            .x(@scales.x)
+            .scaleExtent([1, Infinity])
+            .on('zoom', zoom)
         @root.call(@options.zoom)
 
     # Function pair to allow for easy hiding and showing the time slider
