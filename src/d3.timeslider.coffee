@@ -26,6 +26,27 @@ class TimeSlider
         # array to hold individual data points / data ranges
         @data = {}
 
+        # create a custom formatter for labeling ticks
+        customFormatter = (formats) =>
+            console.log formats
+            (date) ->
+                i = formats.length - 1
+                f = formats[i]
+
+                f = formats[i--] until f[1](date)
+                f[0](date)
+
+        customFormats = customFormatter([
+            [d3.time.format("%Y"), -> true ],
+            [d3.time.format("%B %Y"), (d) -> d.getUTCMonth() ],
+            [d3.time.format("%b %d %Y"), (d) -> d.getUTCDate() != 1 ],
+            [d3.time.format("%b %d %Y "), (d) ->d.getUTCDay() && d.getUTCDate() != 1 ],
+            [d3.time.format("%I %p"), (d) -> d.getUTCHours() ],
+            [d3.time.format("%I:%M"), (d) -> d.getUTCMinutes() ],
+            [d3.time.format(":%S"), (d) -> d.getUTCSeconds() ],
+            [d3.time.format(".%L"), (d) -> d.getUTCMilliseconds() ]
+        ])
+
         # scales
         @scales =
             x: d3.time.scale.utc()
@@ -37,6 +58,7 @@ class TimeSlider
             x: d3.svg.axis()
                 .scale(@scales.x)
                 .tickSubdivide(3)
+                .tickFormat(customFormats)
                 .tickSize(@options.height - 13)
 
         @root.append('g')
@@ -169,7 +191,6 @@ class TimeSlider
             for dataset of @data
                 @updateDataset(dataset)
 
-
         # resizing (the window)
         resize = =>
             # update the width of the element and the scales
@@ -218,7 +239,6 @@ class TimeSlider
         }))
         true
 
-    # TODO
     addDataset: (dataset) ->
         @drawDataset(dataset)
         true
