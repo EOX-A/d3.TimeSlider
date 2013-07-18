@@ -1,11 +1,8 @@
 class TimeSlider
 
     # TODO
-    #  * Allow for the registration of datasets to be shown beneath the brush
-    #    * WCS  DescribeEOCoverageSet (using libcoveragejs (schindlerf))
-    #  * Cleanup the mess that is the axis labels right now
+    #  * Implement a function to fetch dataset information from a WMS / WCS service
     #  * Compute the padding at the left & right of the timeslider
-    #  * Convert all dates to UTC
     #  * TESTING
 
     constructor: (@element, @options = {}) ->
