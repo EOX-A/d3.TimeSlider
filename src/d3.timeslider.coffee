@@ -116,7 +116,8 @@ class TimeSlider
             # update data
             d.ranges = []
             d.points = []
-            for data in d.callback()
+
+            for data in d.callback(@scales.x.domain()[0], @scales.x.domain()[1])
                 if(data.length > 1)
                     d.ranges.push data
                 else
