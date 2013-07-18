@@ -51,9 +51,18 @@ class TimeSlider
         @brush = d3.svg.brush()
             .x(@scales.x)
             .on('brushstart', =>
-                @root.call(@options.zoom.on('zoom', null))
+                @options.lastZoom = {
+                    scale: @options.zoom.scale(),
+                    translate: [
+                        @options.zoom.translate()[0],
+                        @options.zoom.translate()[1],
+                    ]
+                }
+                @options.zoom.on('zoom', null)
             )
             .on('brushend', =>
+                @options.zoom.scale(@options.lastZoom.scale)
+                    .translate(@options.lastZoom.translate).on('zoom', zoom)
                 element.dispatchEvent(
                     new CustomEvent('selectionChanged', {
                         detail: {
@@ -64,10 +73,6 @@ class TimeSlider
                         cancelable: true
                     })
                 )
-                if @options.lastZoom?
-                    @root.call(@options.zoom.scale(@options.lastZoom.scale()).translate(@options.lastZoom.translate()).on('zoom', zoom))
-                else
-                    @root.call(@options.zoom.on('zoom', zoom))
             )
             .extent([@options.brush.start, @options.brush.end])
 
