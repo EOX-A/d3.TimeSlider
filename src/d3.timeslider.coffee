@@ -92,15 +92,16 @@ class TimeSlider
             .attr('height', @options.height)
             .attr('transform', "translate(0, #{options.height - 18})")
 
-        drawDataset = (dataset, index) =>
+        @drawDataset = (dataset) =>
             @root.select('g.datasets')
                 .append('g')
                     .attr('class', 'dataset')
                     .attr('id', "dataset-#{dataset.id}")
             el = @root.select("g.datasets #dataset-#{dataset.id}")
+            @options.datasetIndex = 0 unless @options.datasetIndex?
 
             @data[dataset.id] = {
-                index: index,
+                index: @options.datasetIndex++,
                 color: dataset.color,
                 callback: dataset.data,
                 points: [],
@@ -153,9 +154,8 @@ class TimeSlider
 
             p.exit().remove()
 
-        for dataset, index in @options.datasets
-            do (dataset, index) ->
-                drawDataset(dataset, index)
+        for dataset in @options.datasets
+            do (dataset) => @drawDataset(dataset)
 
         redraw = =>
             # update brush
@@ -220,6 +220,7 @@ class TimeSlider
 
     # TODO
     addDataset: (dataset) ->
+        @drawDataset(dataset)
         true
 
     # TODO
