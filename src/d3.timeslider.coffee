@@ -223,8 +223,18 @@ class TimeSlider
         @drawDataset(dataset)
         true
 
-    # TODO
     removeDataset: (id) ->
+        return false unless @data[id]?
+
+        i = @data[id].index
+        delete @data[id]
+        d3.select(@element).select("g.dataset#dataset-#{id}").remove()
+
+        # repaint the datasets
+        for dataset of @data
+            @data[dataset].index -= 1 if @data[dataset].index > i
+            @updateDataset(dataset)
+
         true
 
     # TODO
