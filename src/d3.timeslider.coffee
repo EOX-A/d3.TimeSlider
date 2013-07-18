@@ -28,7 +28,6 @@ class TimeSlider
 
         # create a custom formatter for labeling ticks
         customFormatter = (formats) =>
-            console.log formats
             (date) ->
                 i = formats.length - 1
                 f = formats[i]
