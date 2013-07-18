@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>D3.timeslider by EOX-A</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>D3.timeslider</h1>
+        <p>A time slider based on D3.js</p>
+
+        <p class="view"><a href="https://github.com/EOX-A/d3.TimeSlider">View the Project on GitHub <small>EOX-A/d3.TimeSlider</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/EOX-A/d3.TimeSlider/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/EOX-A/d3.TimeSlider/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/EOX-A/d3.TimeSlider">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a name="d3timeslider" class="anchor" href="#d3timeslider"><span class="octicon octicon-link"></span></a>d3.Timeslider</h1>
+
+<p>d3.Timeslider is a time slider based on the <a href="http://d3js.org">D3.js</a> javascript
+library. It is written in <a href="http://coffeescript.org">CoffeeScript</a> and
+<a href="http://lesscss.org">Less</a></p>
+
+<p>The software is licensed under a MIT compatible license, for more information see
+<a href="License">License</a></p>
+
+<h2>
+<a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>Include the JavaScript and CSS files (and <a href="http://d3js.org/">D3.js</a> as
+D3.Timeslider depends on it) and then instantiate a new slider like in the
+following snippet.</p>
+
+<p>You can download the latest version of D3 directly from
+<a href="http://d3js.org/d3.v3.zip">d3js.org/d3.v3.zip</a></p>
+
+<div class="highlight"><pre><span class="c">&lt;!-- TimeSlider --&gt;</span>
+<span class="nt">&lt;script </span><span class="na">src=</span><span class="s">"build/d3.timeslider.js"</span><span class="nt">&gt;&lt;/script&gt;</span>
+<span class="nt">&lt;link</span> <span class="na">href=</span><span class="s">"build/d3.timeslider.css"</span> <span class="na">rel=</span><span class="s">"stylesheet"</span> <span class="nt">/&gt;</span>
+<span class="nt">&lt;script&gt;</span>
+  <span class="nb">window</span><span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="s1">'load'</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// Initialize the TimeSlider</span>
+    <span class="nx">slider</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">TimeSlider</span><span class="p">(</span><span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">'d3_timeslider'</span><span class="p">),</span> <span class="p">{</span>
+      <span class="nx">start</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">(</span><span class="s2">"2012-01-01T00:00:00Z"</span><span class="p">),</span>
+      <span class="nx">end</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">(</span><span class="s2">"2013-01-01T00:00:00Z"</span><span class="p">),</span>
+      <span class="nx">brush</span><span class="o">:</span> <span class="p">{</span>
+        <span class="nx">start</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">(</span><span class="s2">"2012-01-05T00:00:00Z"</span><span class="p">),</span>
+        <span class="nx">end</span><span class="o">:</span> <span class="k">new</span> <span class="nb">Date</span><span class="p">(</span><span class="s2">"2012-01-10T00:00:00Z"</span><span class="p">)</span>
+      <span class="p">},</span>
+      <span class="nx">datasets</span><span class="o">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+          <span class="nx">id</span><span class="o">:</span> <span class="s1">'img2012'</span><span class="p">,</span>
+          <span class="nx">color</span><span class="o">:</span> <span class="s1">'red'</span><span class="p">,</span>
+          <span class="nx">data</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">start</span><span class="p">,</span> <span class="nx">end</span><span class="p">)</span> <span class="p">{</span>
+            <span class="k">return</span> <span class="p">[</span>
+              <span class="p">[</span> 
+                <span class="k">new</span> <span class="nb">Date</span><span class="p">(</span><span class="s2">"2012-01-01T12:00:00Z"</span><span class="p">),</span>
+                <span class="k">new</span> <span class="nb">Date</span><span class="p">(</span><span class="s2">"2012-01-01T16:00:00Z"</span><span class="p">)</span> 
+              <span class="p">],</span>
+              <span class="p">[</span> 
+                <span class="k">new</span> <span class="nb">Date</span><span class="p">(</span><span class="s2">"2012-01-04T00:00:00Z"</span><span class="p">)</span> 
+              <span class="p">]</span>
+            <span class="p">]</span>
+          <span class="p">}</span>
+        <span class="p">}</span>
+      <span class="p">]</span>
+    <span class="p">});</span>
+
+    <span class="c1">// Register a callback for changing the selected time period</span>
+    <span class="nb">document</span><span class="p">.</span><span class="nx">getElementById</span><span class="p">(</span><span class="s1">'d3_timeslider'</span><span class="p">)</span>
+      <span class="p">.</span><span class="nx">addEventListener</span><span class="p">(</span><span class="s1">'selectionChanged'</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">e</span><span class="p">){</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">"Custom event handler on the time slider"</span><span class="p">);</span>
+        <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="nx">e</span><span class="p">.</span><span class="nx">detail</span><span class="p">);</span>
+      <span class="p">});</span>
+  <span class="p">},</span> <span class="kc">false</span><span class="p">);</span>
+<span class="nt">&lt;/script&gt;</span>
+</pre></div>
+
+<h2>
+<a name="development" class="anchor" href="#development"><span class="octicon octicon-link"></span></a>Development</h2>
+
+<p>Install development dependencies, and start grunt via the following two commands.</p>
+
+<div class="highlight"><pre>npm install
+grunt watch
+</pre></div>
+
+<p>You can then open the <a href="preview.html">preview</a> page and any changes to the
+CoffeeScript and Less files will be automatically compiled and reloaded in the
+browser.</p>
+
+<p>To lint the CoffeeScript source run the following command.</p>
+
+<div class="highlight"><pre>grunt lint
+</pre></div>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/EOX-A">EOX-A</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
