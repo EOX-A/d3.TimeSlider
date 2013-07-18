@@ -218,13 +218,16 @@ class TimeSlider
         }))
         true
 
-    center: ->
-        extent = @brush.extent()
-        center = -1 * (@scales.x(new Date((extent[0].getTime() + extent[1].getTime()) / 2)) - @options.width / 2)
-        center = 0 if center > 0
-        d3.select(@element)[0][0].dragging = { position: [center, 0] }
+    # TODO
+    addDataset: (dataset) ->
+        true
 
-        @root.attr('transform', "translate(#{center}, 0)")
+    # TODO
+    removeDataset: (id) ->
+        true
+
+    # TODO
+    center: ->
         true
 
 # Export the TimeSlider object for use in the browser
