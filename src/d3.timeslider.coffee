@@ -154,18 +154,11 @@ class TimeSlider
             do (dataset, index) ->
                 drawDataset(dataset, index)
 
-        # resizing (the window)
-        resize = =>
-            # update the width of the element
-            @options.width = d3.select(@element).select('svg.timeslider')[0][0].clientWidth
-
-            # update scale
-            @scales.x.range([0, @options.width])
-
+        redraw = =>
             # update brush
             @brush.x(@scales.x).extent(@brush.extent())
 
-            # repaint the axis, scales and the brush
+            # repaint the axis and the brush
             d3.select(@element).select('g.axis').call(@axis.x)
             d3.select(@element).select('g.brush').call(@brush)
 
@@ -173,22 +166,20 @@ class TimeSlider
             for dataset of @data
                 @updateDataset(dataset)
 
+
+        # resizing (the window)
+        resize = =>
+            # update the width of the element and the scales
+            @options.width = d3.select(@element).select('svg.timeslider')[0][0].clientWidth
+            @scales.x.range([0, @options.width])
+
+            redraw()
+
         d3.select(window).on('resize', resize)
 
         # zooming & dragging
         zoom = =>
-            # repaint the scales and the axis
-            d3.select(@element).select('g.axis').call(@axis.x)
-
-            # translate and scale the brush if needed
-            d3.select(@element).select('g.brush')
-                .attr('transform', "translate(#{d3.event.translate[0]},0),scale(#{d3.event.scale},1)")
-
-            # repaint the datasets
-            for dataset of @data
-                @updateDataset(dataset)
-
-            @options.lastZoom = @options.zoom
+            redraw()
 
         @options.zoom = d3.behavior.zoom().x(@scales.x).on('zoom', zoom)
         @root.call(@options.zoom)
