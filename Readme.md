@@ -5,7 +5,9 @@ library. It is written in [CoffeeScript](http://coffeescript.org) and
 [Less](http://lesscss.org)
 
 The software is licensed under a MIT compatible license, for more information see
-[License](License)
+[License](License).
+
+For a list of recent changes, please see the [Changelog](Changelog).
 
 ## Usage
 

@@ -70,7 +70,7 @@ module.exports = (grunt) ->
           archive: 'release/d3.TimeSlider.v<%= pkg.version %>.zip'
         files: [
           { expand: true, cwd: 'build', src: ['*.min.js', '*.min.css'], dest: 'd3.timeslider' },
-          { expand: true, src: ['License', 'Readme.md'], dest: 'd3.timeslider' }
+          { expand: true, src: ['License', 'Readme.md', 'Changelog'], dest: 'd3.timeslider' }
         ]
   }
 
