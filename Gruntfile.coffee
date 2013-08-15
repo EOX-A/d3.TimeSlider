@@ -57,10 +57,7 @@ module.exports = (grunt) ->
       options:
         files: ['package.json'],
         updateConfigs: ['pkg'],
-        commit: false,
-        createTag: false,
         push: false,
-        pushTo: 'origin',
     clean:
       build: [ 'build/*' ]
       release: [ 'release/*' ]
