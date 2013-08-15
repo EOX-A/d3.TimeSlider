@@ -1,3 +1,7 @@
+v0.0.2:
+  date: 2013-08-15
+  changes:
+    - bumped version for grunt based release process
 v0.0.1:
   date: 2013-08-15
   changes:
