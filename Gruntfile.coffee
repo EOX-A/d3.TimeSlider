@@ -1,7 +1,9 @@
 module.exports = (grunt) ->
   # load plugins
   grunt.loadNpmTasks('grunt-contrib-watch');
+  grunt.loadNpmTasks('grunt-contrib-clean');
   grunt.loadNpmTasks('grunt-contrib-coffee')
+  grunt.loadNpmTasks('grunt-contrib-compress');
   grunt.loadNpmTasks('grunt-contrib-less');
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-coffeelint');
@@ -39,9 +41,6 @@ module.exports = (grunt) ->
           except: 'd3'
         report: 'gzip'
         preserveComment: false
-        sourceMap: 'build/d3.timeslider.min.js.map',
-        sourceMapRoot: 'src/',
-        sourceMapIn: 'build/d3.timeslider.js.map'
       compile:
         files:
           'build/d3.timeslider.min.js': ['build/d3.timeslider.js']
@@ -62,8 +61,19 @@ module.exports = (grunt) ->
         createTag: false,
         push: false,
         pushTo: 'origin',
+    clean:
+      build: [ 'build/*' ]
+      release: [ 'release/*' ]
+    compress:
+      release:
+        options:
+          archive: 'release/d3.TimeSlider.v<%= pkg.version %>.zip'
+        files: [
+          { expand: true, cwd: 'build', src: ['*.min.js', '*.min.css'], dest: 'd3.timeslider' },
+          { expand: true, src: ['License', 'Readme.md'], dest: 'd3.timeslider' }
+        ]
   }
 
-  grunt.registerTask('default', ['lint', 'coffee', 'uglify', 'less:production'])
   grunt.registerTask('lint', ['coffeelint'])
-  grunt.registerTask('release', ['bump', 'coffee', 'uglify', 'less:production',])
+  grunt.registerTask('default', ['clean:build', 'coffee', 'uglify', 'less:development'])
+  grunt.registerTask('release', ['clean:release', 'bump', 'coffee', 'uglify', 'less:production', 'compress:release'])
