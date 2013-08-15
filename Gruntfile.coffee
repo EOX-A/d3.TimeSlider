@@ -5,6 +5,7 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks('grunt-contrib-less');
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-coffeelint');
+  grunt.loadNpmTasks('grunt-bump');
 
   grunt.initConfig {
     pkg: grunt.file.readJSON('package.json'),
@@ -33,7 +34,7 @@ module.exports = (grunt) ->
       app: 'src/*.coffee'
     uglify:
       options:
-        banner: '/* <%= pkg.name %> - v<%= pkg.version %> - <%= grunt.template.today("yyyy-mm-dd") %>\n * See <%= pkg.homepage %> for more information! */\n',
+        banner: '/* <%= pkg.name %> - version <%= pkg.version %> - <%= grunt.template.today("yyyy-mm-dd") %>\n * See <%= pkg.homepage %> for more information! */\n',
         mangle:
           except: 'd3'
         report: 'gzip'
@@ -53,7 +54,16 @@ module.exports = (grunt) ->
           yuicompress: true
         files:
             'build/d3.timeslider.min.css': 'src/*.less'
-    }
+    bump:
+      options:
+        files: ['package.json'],
+        updateConfigs: ['pkg'],
+        commit: false,
+        createTag: false,
+        push: false,
+        pushTo: 'origin',
+  }
 
   grunt.registerTask('default', ['lint', 'coffee', 'uglify', 'less:production'])
   grunt.registerTask('lint', ['coffeelint'])
+  grunt.registerTask('release', ['bump', 'coffee', 'uglify', 'less:production',])
