@@ -10,12 +10,11 @@ class TimeSlider
         @debug = true
 
         # create the root svg element
-        svg = d3.select(element).append('svg').attr('class', 'timeslider')
-        @root = svg.append('g').attr('class', 'root')
+        @svg = d3.select(element).append('svg').attr('class', 'timeslider')
 
         # default options and other variables for later
-        @options.width  = svg[0][0].clientWidth
-        @options.height = svg[0][0].clientHeight
+        @options.width  = @svg[0][0].clientWidth
+        @options.height = @svg[0][0].clientHeight
         @options.brush ||= {}
         @options.brush.start || = @options.start
         @options.brush.end ||= new Date(new Date(@options.brush.start).setDate(@options.brush.start.getDate() + 3))
@@ -57,7 +56,7 @@ class TimeSlider
                 .tickFormat(customFormats)
                 .tickSize(@options.height - 13)
 
-        @root.append('g')
+        @svg.append('g')
             .attr('class', 'axis')
             .call(@axis.x)
 
@@ -96,7 +95,7 @@ class TimeSlider
             )
             .extent([@options.brush.start, @options.brush.end])
 
-        @root.append('g')
+        @svg.append('g')
             .attr('class', 'brush')
             .call(@brush)
             .selectAll('rect')
@@ -104,18 +103,18 @@ class TimeSlider
                 .attr('y', 0)
 
         # datasets
-        @root.append('g')
+        @svg.append('g')
             .attr('class', 'datasets')
             .attr('width', @options.width)
             .attr('height', @options.height)
             .attr('transform', "translate(0, #{options.height - 18})")
 
         @drawDataset = (dataset) =>
-            @root.select('g.datasets')
+            @svg.select('g.datasets')
                 .append('g')
                     .attr('class', 'dataset')
                     .attr('id', "dataset-#{dataset.id}")
-            el = @root.select("g.datasets #dataset-#{dataset.id}")
+            el = @svg.select("g.datasets #dataset-#{dataset.id}")
             @options.datasetIndex = 0 unless @options.datasetIndex?
 
             @data[dataset.id] = {
@@ -129,7 +128,7 @@ class TimeSlider
             @updateDataset(dataset.id)
 
         @updateDataset = (dataset) =>
-            el = @root.select("g.datasets #dataset-#{dataset}")
+            el = @svg.select("g.datasets #dataset-#{dataset}")
             d = @data[dataset]
 
             # update data
@@ -205,7 +204,7 @@ class TimeSlider
             .x(@scales.x)
             .scaleExtent([1, Infinity])
             .on('zoom', zoom)
-        @root.call(@options.zoom)
+        @svg.call(@options.zoom)
 
     # Function pair to allow for easy hiding and showing the time slider
     hide: ->
