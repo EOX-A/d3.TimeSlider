@@ -201,6 +201,7 @@ class TimeSlider
 
         @options.zoom = d3.behavior.zoom()
             .x(@scales.x)
+            .size([@options.width, @options.height])
             .scaleExtent([1, Infinity])
             .on('zoom', zoom)
         @svg.call(@options.zoom)
