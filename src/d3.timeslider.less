@@ -3,8 +3,8 @@
  * All elements of the timeslider are beneath a svg element with a class of 'timeslider'
  */
 svg.timeslider {
-  width: 99%;
-  height: 4em;
+  width: 100%;
+  height: 100%;
   background: white;
   opacity: .8;
   border: 1px solid white;
@@ -13,12 +13,7 @@ svg.timeslider {
   .axis {
     fill: none;
 
-    .tick.minor {
-      stroke: rgba(100, 100, 100, 0.25);
-      shape-rendering: crispEdges;
-    }
-
-    .tick.major {
+    .tick {
       stroke: rgba(100, 100, 100, 1);
       shape-rendering: crispEdges;
 
@@ -26,6 +21,11 @@ svg.timeslider {
         stroke: rgb(0, 0, 0);
         font: .7em sans-serif;
       }
+    }
+
+    .tick.minor {
+      stroke: rgba(100, 100, 100, 0.25);
+      shape-rendering: crispEdges;
     }
 
     .domain {
