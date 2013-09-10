@@ -52,6 +52,7 @@ class TimeSlider
         @axis =
             x: d3.svg.axis()
                 .scale(@scales.x)
+                .innerTickSize(@options.height - 13)
                 .tickFormat(customFormats)
 
         @svg.append('g')
@@ -59,7 +60,7 @@ class TimeSlider
             .call(@axis.x)
 
         # translate the main x axis
-        d3.select(@element).select('g.axis')
+        d3.select(@element).select('g.axis .domain')
             .attr('transform', "translate(0, #{options.height - 18})")
 
         # brush
