@@ -253,8 +253,11 @@ class TimeSlider
         true
 
     # TODO
-    center: ->
+    center: (params...) ->
         true
 
+    # TODO
+    zoom: (params...) ->
+        true
 # Export the TimeSlider object for use in the browser
 this.TimeSlider = TimeSlider
