@@ -47,6 +47,7 @@ class TimeSlider
             x: d3.time.scale.utc()
                 .domain([ @options.domain.start, @options.domain.end ])
                 .range([0, @options.width])
+                .nice()
 
         # axis
         @axis =
