@@ -26,8 +26,10 @@ You can download the latest version of D3 directly from
   window.addEventListener('load', function() {
     // Initialize the TimeSlider
     slider = new TimeSlider(document.getElementById('d3_timeslider'), {
-      start: new Date("2012-01-01T00:00:00Z"),
-      end: new Date("2013-01-01T00:00:00Z"),
+      domain: {
+        start: new Date("2012-01-01T00:00:00Z"),
+        end: new Date("2013-01-01T00:00:00Z"),
+      },
       brush: {
         start: new Date("2012-01-05T00:00:00Z"),
         end: new Date("2012-01-10T00:00:00Z")
