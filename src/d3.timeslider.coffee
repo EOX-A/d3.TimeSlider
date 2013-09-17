@@ -257,8 +257,31 @@ class TimeSlider
     center: (params...) ->
         true
 
-    # TODO
     zoom: (params...) ->
+        start = new Date(params[0])
+        end = new Date(params[1])
+        [ start, end ] = [ end, start ] if end < start
+
+        d3.transition().duration(750).tween('zoom', =>
+            iScale = d3.interpolate(@options.zoom.scale(),
+                (@options.domain.end - @options.domain.start) / (end - start))
+            iPan = d3.interpolate(@options.zoom.translate()[0], @options.zoom.translate()[0] - @scales.x(start))
+            return (t) =>
+                @options.zoom.scale(iScale(t))
+                @options.zoom.translate([ (iPan(t)), 0 ])
+
+                # update brush
+                @brush.x(@scales.x).extent(@brush.extent())
+
+                # repaint the axis and the brush
+                d3.select(@element).select('g.axis').call(@axis.x)
+                d3.select(@element).select('g.brush').call(@brush)
+
+                # repaint the datasets
+                @updateDataset(dataset) for dataset of @data
+        )
+
         true
+
 # Export the TimeSlider object for use in the browser
 this.TimeSlider = TimeSlider
