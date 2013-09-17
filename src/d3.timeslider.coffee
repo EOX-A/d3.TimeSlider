@@ -265,8 +265,9 @@ class TimeSlider
         d3.transition().duration(750).tween('zoom', =>
             iScale = d3.interpolate(@options.zoom.scale(),
                 (@options.domain.end - @options.domain.start) / (end - start))
-            iPan = d3.interpolate(@options.zoom.translate()[0], @options.zoom.translate()[0] - @scales.x(start))
             return (t) =>
+                iPan = d3.interpolate(@options.zoom.translate()[0], @options.zoom.translate()[0] - @scales.x(start))
+
                 @options.zoom.scale(iScale(t))
                 @options.zoom.translate([ (iPan(t)), 0 ])
 
