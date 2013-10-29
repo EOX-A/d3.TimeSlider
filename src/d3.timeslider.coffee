@@ -259,6 +259,31 @@ class TimeSlider
 
         true
 
+    domain: (params...) ->
+        # TODO: more thorough input checking
+        return false unless params.length == 2
+
+        start = new Date(params[0])
+        end = new Date(params[1])
+        [ start, end ] = [ end, start ] if end < start
+
+        @options.domain.start = start
+        @options.domain.end = end
+
+        @scales.x.domain([ @options.domain.start, @options.domain.end ])
+
+        # TODO: duplication of code in the redraw() function
+        # update brush
+        @brush.x(@scales.x).extent(@brush.extent())
+
+        # repaint the axis and the brush
+        d3.select(@element).select('g.axis').call(@axis.x)
+        d3.select(@element).select('g.brush').call(@brush)
+
+        # repaint the datasets
+        for dataset of @data
+            @updateDataset(dataset)
+
     # TODO
     center: (params...) ->
         true
