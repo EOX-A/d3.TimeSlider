@@ -58,7 +58,7 @@ You can download the latest version of D3 directly from
     });
 
     // Change the timeslider domain
-    slider.domain(new Date("2011-01-01T00:00:00Z"),  new Date("2013-01-01T00:00:00Z"))
+    slider.domain(new Date("2011-01-01T00:00:00Z"),  new Date("2013-01-01T00:00:00Z"));
   }, false);
 </script>
 ```
