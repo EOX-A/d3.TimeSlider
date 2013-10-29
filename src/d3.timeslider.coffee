@@ -240,10 +240,13 @@ class TimeSlider
         true
 
     select: (params...) ->
-        start = new Date(params[0])
-        start = @options.start if start < @options.start
+        return false unless params.length == 2
 
+        start = new Date(params[0])
         end = new Date(params[1])
+        [ start, end ] = [ end, start ] if end < start
+
+        start = @options.start if start < @options.start
         end = @options.end if end > @options.end
 
         d3.select(@element).select('g.brush').call(@brush.extent([start, end]))
