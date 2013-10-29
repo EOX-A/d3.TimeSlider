@@ -179,7 +179,7 @@ class TimeSlider
         for dataset in @options.datasets
             do (dataset) => @drawDataset(dataset)
 
-        redraw = =>
+        @redraw = =>
             # update brush
             @brush.x(@scales.x).extent(@brush.extent())
 
@@ -198,13 +198,13 @@ class TimeSlider
             @options.width = if @useBBox then svg.getBBox().width else svg.clientWidth
             @scales.x.range([0, @options.width])
 
-            redraw()
+            @redraw()
 
         d3.select(window).on('resize', resize)
 
         # zooming & dragging
         zoom = =>
-            redraw()
+            @redraw()
 
         @options.zoom = d3.behavior.zoom()
             .x(@scales.x)
@@ -235,18 +235,9 @@ class TimeSlider
         @options.domain.end = end
 
         @scales.x.domain([ @options.domain.start, @options.domain.end ])
+        @redraw()
 
-        # TODO: duplication of code in the redraw() function
-        # update brush
-        @brush.x(@scales.x).extent(@brush.extent())
-
-        # repaint the axis and the brush
-        d3.select(@element).select('g.axis').call(@axis.x)
-        d3.select(@element).select('g.brush').call(@brush)
-
-        # repaint the datasets
-        for dataset of @data
-            @updateDataset(dataset)
+        true
 
     select: (params...) ->
         start = new Date(params[0])
