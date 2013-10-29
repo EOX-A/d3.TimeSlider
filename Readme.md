@@ -57,8 +57,11 @@ You can download the latest version of D3 directly from
       console.log(e.detail);
     });
 
-    // Change the timeslider domain
+    // Change the TimeSlider domain
     slider.domain(new Date("2011-01-01T00:00:00Z"),  new Date("2013-01-01T00:00:00Z"));
+
+    // Reset the TimeSlider to it's initial view (e.g. after zooming in, ...)
+    slider.reset();
   }, false);
 </script>
 ```
