@@ -12,9 +12,14 @@ class TimeSlider
         # create the root svg element
         @svg = d3.select(element).append('svg').attr('class', 'timeslider')
 
+        @useBBox = false;
+        if(@svg[0][0].clientWidth == 0)
+            d3.select(element).select('svg').append('rect').attr('width', '100%').attr('height', '100%').attr('opacity', '0')
+            @useBBox = true
+
         # default options and other variables for later
-        @options.width  = @svg[0][0].clientWidth
-        @options.height = @svg[0][0].clientHeight
+        @options.width = if @useBBox then @svg[0][0].getBBox().width else @options.width  = @svg[0][0].clientWidth
+        @options.height = if @useBBox then @svg[0][0].getBBox().height else @svg[0][0].clientHeight
         @options.brush ||= {}
         @options.brush.start || = @options.start
         @options.brush.end ||= new Date(new Date(@options.brush.start).setDate(@options.brush.start.getDate() + 3))
@@ -189,7 +194,8 @@ class TimeSlider
         # resizing (the window)
         resize = =>
             # update the width of the element and the scales
-            @options.width = d3.select(@element).select('svg.timeslider')[0][0].clientWidth
+            svg = d3.select(@element).select('svg.timeslider')[0][0]
+            @options.width = if @useBBox then svg.getBBox().width else svg.clientWidth
             @scales.x.range([0, @options.width])
 
             redraw()
