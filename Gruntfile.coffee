@@ -27,6 +27,7 @@ module.exports = (grunt) ->
           sourceMap: true
         files:
           'build/d3.timeslider.js': 'src/*.coffee'
+          'build/d3.timeslider.plugins.js': 'src/plugins/*.coffee'
     coffeelint:
       options:
         indentation:
@@ -44,6 +45,7 @@ module.exports = (grunt) ->
       compile:
         files:
           'build/d3.timeslider.min.js': ['build/d3.timeslider.js']
+          'build/d3.timeslider.plugins.min.js': ['build/d3.timeslider.plugins.js']
     less:
       development:
         files:

@@ -12,7 +12,9 @@
 
 			<!-- Timeslider -->
 			<script src="dependencies/d3.v3/d3.v3.min.js" charset="utf-8"></script>
+			<script src="dependencies/libcoverage.js/libcoverage.min.js" charset="utf-8"></script>
 			<script src="build/d3.timeslider.js"></script>
+			<script src="build/d3.timeslider.plugins.js"></script>
 			<link href="build/d3.timeslider.css" rel="stylesheet" type="text/css" media="all" />
 
 			<!-- LiveReload -->
@@ -86,8 +88,12 @@
 									[ new Date("2012-01-06T12:00:00Z"), new Date("2012-01-06T16:00:00Z") ],
 								]);
 							}
-						}
-
+						},
+						{
+							id: 'fsc',
+							color: 'green',
+							data: new TimeSlider.Plugin.EOWCS({ url: 'http://neso.cryoland.enveo.at/cryoland/ows', eoid: 'daily_FSC_PanEuropean_Optical', dataset: 'fsc' })
+						},
 					]
 				});
 
