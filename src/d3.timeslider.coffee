@@ -27,6 +27,16 @@ class TimeSlider
         # array to hold individual data points / data ranges
         @data = {}
 
+        # debounce function for rate limiting
+        @timeouts = []
+        debounce = (timeout, id, fn) =>
+            return unless timeout and id and fn
+            @timeouts[id] = -1 unless @timeouts[id]
+
+            return =>
+                window.clearTimeout(@timeouts[id]) if @timeouts[id] > -1
+                @timeouts[id] = window.setTimeout(fn, timeout)
+
         # create a custom formatter for labeling ticks
         customFormatter = (formats) =>
             (date) ->
@@ -133,49 +143,52 @@ class TimeSlider
             @updateDataset(dataset.id)
 
         @updateDataset = (dataset) =>
-            @data[dataset].callback(@scales.x.domain()[0], @scales.x.domain()[1], (id, data) =>
-                el = @svg.select("g.datasets #dataset-#{id}")
-                d = @data[id]
+            callback = debounce(100, dataset, =>
+                @data[dataset].callback(@scales.x.domain()[0], @scales.x.domain()[1], (id, data) =>
+                    el = @svg.select("g.datasets #dataset-#{id}")
+                    d = @data[id]
 
-                d.ranges = []
-                d.points = []
+                    d.ranges = []
+                    d.points = []
 
-                for element in data
-                    if(element.length > 1)
-                        d.ranges.push(element)
-                    else
-                        d.points.push(element)
+                    for element in data
+                        if(element.length > 1)
+                            d.ranges.push(element)
+                        else
+                            d.points.push(element)
 
-                # ranges
-                el.selectAll('path').remove()
-                r = el.selectAll('path')
-                    .data(d.ranges)
+                    # ranges
+                    el.selectAll('path').remove()
+                    r = el.selectAll('path')
+                        .data(d.ranges)
 
-                r.enter().append('path')
-                    .attr('d',
-                        d3.svg.line()
-                            .x( (d) => @scales.x(d) )
-                            .y( -5 * d.index )
-                            .interpolate('linear')
-                        )
-                    .attr('stroke', d.color)
+                    r.enter().append('path')
+                        .attr('d',
+                            d3.svg.line()
+                                .x( (d) => @scales.x(d) )
+                                .y( -5 * d.index )
+                                .interpolate('linear')
+                            )
+                        .attr('stroke', d.color)
 
-                r.exit().remove()
+                    r.exit().remove()
 
-                # points
-                el.selectAll('circle').remove()
-                p = el.selectAll('circle')
-                    .data(d.points)
-                    .remove()
+                    # points
+                    el.selectAll('circle').remove()
+                    p = el.selectAll('circle')
+                        .data(d.points)
+                        .remove()
 
-                p.enter().append('circle')
-                        .attr('cx', (d) => @scales.x( new Date(d) ) )
-                        .attr('cy', "#{-5 * d.index}")
-                        .attr('fill', d.color)
-                        .attr('r', 2)
+                    p.enter().append('circle')
+                            .attr('cx', (d) => @scales.x( new Date(d) ) )
+                            .attr('cy', "#{-5 * d.index}")
+                            .attr('fill', d.color)
+                            .attr('r', 2)
 
-                p.exit().remove()
+                    p.exit().remove()
+                )
             )
+            callback()
 
         for dataset in @options.datasets
             do (dataset) => @drawDataset(dataset)
