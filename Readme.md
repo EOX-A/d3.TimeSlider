@@ -28,6 +28,7 @@ on how to use it is provided below.
 
 <!-- TimeSlider -->
 <script src="build/d3.timeslider.js"></script>
+<script src="build/d3.timeslider.plugins.js"></script>
 <link href="build/d3.timeslider.css" rel="stylesheet" type="text/css" media="all" />
 <script>
   window.addEventListener('load', function() {
