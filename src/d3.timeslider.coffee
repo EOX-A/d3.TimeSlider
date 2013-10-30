@@ -133,48 +133,49 @@ class TimeSlider
             @updateDataset(dataset.id)
 
         @updateDataset = (dataset) =>
-            el = @svg.select("g.datasets #dataset-#{dataset}")
-            d = @data[dataset]
+            @data[dataset].callback(@scales.x.domain()[0], @scales.x.domain()[1], (id, data) =>
+                el = @svg.select("g.datasets #dataset-#{id}")
+                d = @data[id]
 
-            # update data
-            d.ranges = []
-            d.points = []
+                d.ranges = []
+                d.points = []
 
-            for data in d.callback(@scales.x.domain()[0], @scales.x.domain()[1])
-                if(data.length > 1)
-                    d.ranges.push data
-                else
-                    d.points.push data[0]
+                for element in data
+                    if(element.length > 1)
+                        d.ranges.push(element)
+                    else
+                        d.points.push(element)
 
-            # ranges
-            el.selectAll('path').remove()
-            r = el.selectAll('path')
-                .data(d.ranges)
+                # ranges
+                el.selectAll('path').remove()
+                r = el.selectAll('path')
+                    .data(d.ranges)
 
-            r.enter().append('path')
-                .attr('d',
-                    d3.svg.line()
-                        .x( (d) => @scales.x(d) )
-                        .y( -5 * d.index )
-                        .interpolate('linear')
-                    )
-                .attr('stroke', d.color)
+                r.enter().append('path')
+                    .attr('d',
+                        d3.svg.line()
+                            .x( (d) => @scales.x(d) )
+                            .y( -5 * d.index )
+                            .interpolate('linear')
+                        )
+                    .attr('stroke', d.color)
 
-            r.exit().remove()
+                r.exit().remove()
 
-            # points
-            el.selectAll('circle').remove()
-            p = el.selectAll('circle')
-                .data(d.points)
-                .remove()
+                # points
+                el.selectAll('circle').remove()
+                p = el.selectAll('circle')
+                    .data(d.points)
+                    .remove()
 
-            p.enter().append('circle')
-                    .attr('cx', (d) => @scales.x(d))
-                    .attr('cy', "#{-5 * d.index}")
-                    .attr('fill', d.color)
-                    .attr('r', 2)
+                p.enter().append('circle')
+                        .attr('cx', (d) => @scales.x( new Date(d) ) )
+                        .attr('cy', "#{-5 * d.index}")
+                        .attr('fill', d.color)
+                        .attr('r', 2)
 
-            p.exit().remove()
+                p.exit().remove()
+            )
 
         for dataset in @options.datasets
             do (dataset) => @drawDataset(dataset)
