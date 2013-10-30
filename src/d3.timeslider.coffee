@@ -310,15 +310,8 @@ class TimeSlider
                 @options.zoom.scale(iScale(t))
                 @options.zoom.translate([ (iPan(t)), 0 ])
 
-                # update brush
-                @brush.x(@scales.x).extent(@brush.extent())
-
-                # repaint the axis and the brush
-                d3.select(@element).select('g.axis').call(@axis.x)
-                d3.select(@element).select('g.brush').call(@brush)
-
-                # repaint the datasets
-                @updateDataset(dataset) for dataset of @data
+                # redraw
+                @redraw()
         )
 
         true
