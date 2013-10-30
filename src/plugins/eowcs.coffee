@@ -9,7 +9,7 @@ class TimeSlider.Plugin.EOWCS
         callback = (start, end, callback) =>
             request = d3.xhr(WCS.EO.KVP.describeEOCoverageSetURL(@options.url, @options.eoid, { subsetTime: [ @formatDate(start), @formatDate(end) ] }))
             request.get( (error, response) =>
-                return [] if error
+                callback(@options.dataset, []) if error
 
                 datasets = []
                 response = WCS.Core.Parse.parse(response.responseXML)
