@@ -327,5 +327,7 @@ class TimeSlider
         @zoom(@options.domain.start, @options.domain.end)
         true
 
+class TimeSlider.Plugin
+
 # Export the TimeSlider object for use in the browser
 this.TimeSlider = TimeSlider

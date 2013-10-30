@@ -18,7 +18,14 @@ following snippet.
 You can download the latest version of D3 directly from
 [d3js.org/d3.v3.zip](http://d3js.org/d3.v3.zip)
 
+If you want to display datasets loaded from an EOWCS server, you also need
+to include [libcoverage.js](https://github.com/EOX-A/libcoverage.js). An example
+on how to use it is provided below.
+
 ```html
+<!-- libcoverage.js-->
+<script src="dependencies/libcoverage.js/libcoverage.min.js" charset="utf-8"></script>
+
 <!-- TimeSlider -->
 <script src="build/d3.timeslider.js"></script>
 <link href="build/d3.timeslider.css" rel="stylesheet" type="text/css" media="all" />
@@ -47,6 +54,11 @@ You can download the latest version of D3 directly from
               [ new Date("2012-01-06T12:00:00Z"), new Date("2012-01-26T16:00:00Z") ],
             ]);
           }
+        },
+        {
+          id: 'fsc',
+          color: 'green'
+          data: new TimeSlider.Plugin.EOWCS({ url: 'http://neso.cryoland.enveo.at/cryoland/ows', eoid: 'daily_FSC_PanEuropean_Optical', dataset: 'fsc' })
         }
       ]
     });
