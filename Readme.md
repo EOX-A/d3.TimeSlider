@@ -38,14 +38,14 @@ You can download the latest version of D3 directly from
         {
           id: 'img2012',
           color: 'red',
-          data: function(start, end) {
-            return [
+          data: function(start, end, callback) {
+            return callback('img2012', [
               [ new Date("2012-01-01T12:00:00Z"), new Date("2012-01-01T16:00:00Z") ],
               [ new Date("2012-01-02T12:00:00Z"), new Date("2012-01-02T16:00:00Z") ],
               [ new Date("2012-01-04T00:00:00Z") ],
               [ new Date("2012-01-05T00:00:00Z"), new Date("2012-01-06T00:00:00Z") ],
               [ new Date("2012-01-06T12:00:00Z"), new Date("2012-01-26T16:00:00Z") ],
-            ]
+            ]);
           }
         }
       ]
