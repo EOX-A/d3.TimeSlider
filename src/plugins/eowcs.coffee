@@ -2,9 +2,8 @@ class TimeSlider.Plugin.EOWCS
     constructor: (@options = {})->
 
         @formatDate = (date) ->
-            date = date.toISOString()
-            date = date.substring(0, date.length - 5)
-            date + "Z"
+            # All EO-WCS servers used for testing can't handle subsecond precision dates, so we strip this information
+            date.toISOString().substring(0, 19) + "Z"
 
         callback = (start, end, callback) =>
             request = d3.xhr(WCS.EO.KVP.describeEOCoverageSetURL(@options.url, @options.eoid, { subsetTime: [ @formatDate(start), @formatDate(end) ] }))
