@@ -98,7 +98,7 @@ class TimeSlider
                     .scale(@options.lastZoom.scale)
                     .translate(@options.lastZoom.translate)
                     .on('zoom', zoom)
-                element.dispatchEvent(
+                @element.dispatchEvent(
                     new CustomEvent('selectionChanged', {
                         detail: {
                             start: @brush.extent()[0],
