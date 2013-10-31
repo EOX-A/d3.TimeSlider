@@ -12,8 +12,9 @@ class TimeSlider.Plugin.EOWCS
 
                 datasets = []
                 response = WCS.Core.Parse.parse(response.responseXML)
-                for coverage in response.coverageDescriptions
-                    datasets.push([ new Date(coverage.timePeriod[0]), new Date(coverage.timePeriod[1]) ])
+                if(response.coverageDescriptions? and response.coverageDescriptions.length > 0)
+                    for coverage in response.coverageDescriptions
+                        datasets.push([ new Date(coverage.timePeriod[0]), new Date(coverage.timePeriod[1]) ])
 
                 callback(@options.dataset, datasets)
             )
