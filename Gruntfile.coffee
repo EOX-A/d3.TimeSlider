@@ -15,7 +15,10 @@ module.exports = (grunt) ->
       options:
         livereload: true
       coffee:
-        files: 'src/*.coffee',
+        files: [
+          'src/*.coffee',
+          'src/plugins/*.coffee'
+        ],
         tasks: 'coffee'
       less:
         files: 'src/*.less',
