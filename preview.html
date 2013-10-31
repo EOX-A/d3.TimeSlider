@@ -13,8 +13,8 @@
 			<!-- Timeslider -->
 			<script src="dependencies/d3.v3/d3.v3.min.js" charset="utf-8"></script>
 			<script src="dependencies/libcoverage.js/libcoverage.min.js" charset="utf-8"></script>
-			<script src="build/d3.timeslider.js"></script>
-			<script src="build/d3.timeslider.plugins.js"></script>
+			<script src="build/d3.timeslider.min.js"></script>
+			<script src="build/d3.timeslider.plugins.min.js"></script>
 			<link href="build/d3.timeslider.css" rel="stylesheet" type="text/css" media="all" />
 
 			<!-- LiveReload -->
@@ -54,6 +54,7 @@
 
 				// Initialize the TimeSlider
 				slider = new TimeSlider(document.getElementById('d3_timeslider'), {
+					debounce: 100,
 					domain: {
 						start: new Date("2012-01-01T00:00:00Z"),
 						end: new Date("2013-01-01T00:00:00Z"),

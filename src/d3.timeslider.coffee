@@ -23,6 +23,7 @@ class TimeSlider
         @options.brush ||= {}
         @options.brush.start || = @options.start
         @options.brush.end ||= new Date(new Date(@options.brush.start).setDate(@options.brush.start.getDate() + 3))
+        @options.debounce ||= 50
 
         # array to hold individual data points / data ranges
         @data = {}
@@ -179,7 +180,7 @@ class TimeSlider
             p.exit().remove()
 
         reloadDataset = (dataset) =>
-            callback = debounce(50, dataset, =>
+            callback = debounce(@options.debounce, dataset, =>
                 @data[dataset].callback(@scales.x.domain()[0], @scales.x.domain()[1], (id, data) =>
                     el = @svg.select("g.datasets #dataset-#{id}")
                     ranges = []
