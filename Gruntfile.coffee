@@ -19,7 +19,10 @@ module.exports = (grunt) ->
           'src/*.coffee',
           'src/plugins/*.coffee'
         ],
-        tasks: 'coffee'
+        tasks: [
+          'coffee',
+          'uglify'
+        ],
       less:
         files: 'src/*.less',
         tasks: 'less:development'
