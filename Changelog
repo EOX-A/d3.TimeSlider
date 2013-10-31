@@ -1,3 +1,9 @@
+v0.0.5:
+  date: 2013-10-30
+  changes:
+    - Fixed a bug while using the minified version
+    - Fixed a bug in the EO-WCS plugin while returning an empty dataset
+
 v0.0.4:
   date: 2013-10-30
   changes:

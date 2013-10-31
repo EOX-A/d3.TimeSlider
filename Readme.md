@@ -34,6 +34,7 @@ on how to use it is provided below.
   window.addEventListener('load', function() {
     // Initialize the TimeSlider
     slider = new TimeSlider(document.getElementById('d3_timeslider'), {
+      debounce: 50,
       domain: {
         start: new Date("2012-01-01T00:00:00Z"),
         end: new Date("2013-01-01T00:00:00Z"),
@@ -55,11 +56,6 @@ on how to use it is provided below.
               [ new Date("2012-01-06T12:00:00Z"), new Date("2012-01-26T16:00:00Z") ],
             ]);
           }
-        },
-        {
-          id: 'fsc',
-          color: 'green'
-          data: new TimeSlider.Plugin.EOWCS({ url: 'http://neso.cryoland.enveo.at/cryoland/ows', eoid: 'daily_FSC_PanEuropean_Optical', dataset: 'fsc' })
         }
       ]
     });
@@ -70,11 +66,20 @@ on how to use it is provided below.
       console.log(e.detail);
     });
 
-    // Change the TimeSlider domain
+    // Change the TimeSlider domain, or the selected interval, then reset the TimeSlider
+    // to it's initial state
     slider.domain(new Date("2011-01-01T00:00:00Z"),  new Date("2013-01-01T00:00:00Z"));
-
-    // Reset the TimeSlider to it's initial view (e.g. after zooming in, ...)
+    slider.select(new Date("2011-02-01T00:00:00Z"),  new Date("2013-02-08T00:00:00Z"))
     slider.reset();
+
+    // Add a new dataset and remove another one
+    slider.addDataset({
+      id: 'fsc',
+      color: 'green'
+      data: new TimeSlider.Plugin.EOWCS({ url: 'http://neso.cryoland.enveo.at/cryoland/ows', eoid: 'daily_FSC_PanEuropean_Optical', dataset: 'fsc' })
+    });
+    slider.removeDataset('img2012');
+)
   }, false);
 </script>
 ```
