@@ -51,8 +51,8 @@ on how to use it is provided below.
             return callback('img2012', [
               [ new Date("2012-01-01T12:00:00Z"), new Date("2012-01-01T16:00:00Z") ],
               [ new Date("2012-01-02T12:00:00Z"), new Date("2012-01-02T16:00:00Z") ],
-              [ new Date("2012-01-04T00:00:00Z") ],
-              [ new Date("2012-01-05T00:00:00Z"), new Date("2012-01-06T00:00:00Z") ],
+              new Date("2012-01-04T00:00:00Z"),
+              new Date("2012-01-05T00:00:00Z"),
               [ new Date("2012-01-06T12:00:00Z"), new Date("2012-01-26T16:00:00Z") ],
             ]);
           }
@@ -78,6 +78,11 @@ on how to use it is provided below.
       color: 'green'
       data: new TimeSlider.Plugin.EOWCS({ url: 'http://neso.cryoland.enveo.at/cryoland/ows', eoid: 'daily_FSC_PanEuropean_Optical', dataset: 'fsc' })
     });
+    slider.addDataset({
+      id: 'asar',
+      color: 'purple',
+      data: new TimeSlider.Plugin.WMS({ url: 'http://data.eox.at/instance01/ows', eoid: 'ASAR_IMM_L1_view', dataset: 'asar' })
+    })
     slider.removeDataset('img2012');
 )
   }, false);
