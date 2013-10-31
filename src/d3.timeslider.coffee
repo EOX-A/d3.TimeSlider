@@ -187,7 +187,7 @@ class TimeSlider
                     points = []
 
                     for element in data
-                        if(element.length > 1)
+                        if(Array.isArray(element))
                             ranges.push(element)
                         else
                             points.push(element)
