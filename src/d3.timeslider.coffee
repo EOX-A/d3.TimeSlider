@@ -146,33 +146,35 @@ class TimeSlider
             el = @svg.select("g.datasets #dataset-#{dataset}")
             d = @data[dataset]
 
-            # ranges
-            el.selectAll('path').remove()
-            r = el.selectAll('path')
-                .data(d.ranges)
+            drawRanges(el, d.ranges, { index: d.index, color: d.color })
+            drawPoints(el, d.points, { index: d.index, color: d.color })
+
+        drawRanges = (element, data, options) =>
+            element.selectAll('path').remove()
+            r = element.selectAll('path')
+                .data(data)
 
             r.enter().append('path')
                 .attr('d',
                     d3.svg.line()
-                        .x( (d) => @scales.x(d) )
-                        .y( -5 * d.index )
+                        .x( (a) => @scales.x(new Date(a)) )
+                        .y( -5 * options.index )
                         .interpolate('linear')
                     )
-                .attr('stroke', d.color)
+                .attr('stroke', options.color)
 
             r.exit().remove()
 
-            # points
-            el.selectAll('circle').remove()
-            p = el.selectAll('circle')
-                .data(d.points)
-                .remove()
+        drawPoints = (element, data, options) =>
+            element.selectAll('circle').remove()
+            p = element.selectAll('circle')
+               .data(data)
 
             p.enter().append('circle')
-                    .attr('cx', (d) => @scales.x( new Date(d) ) )
-                    .attr('cy', "#{-5 * d.index}")
-                    .attr('fill', d.color)
-                    .attr('r', 2)
+                .attr('cx', (a) => @scales.x(new Date(a)) )
+                .attr('cy', -5 * options.index )
+                .attr('fill', options.color)
+                .attr('r', 2)
 
             p.exit().remove()
 
