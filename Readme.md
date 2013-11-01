@@ -66,8 +66,8 @@ on how to use it is provided below.
       console.log(e.detail);
     });
 
-    // Change the TimeSlider domain, or the selected interval, then reset the TimeSlider
-    // to it's initial state
+    // Change the TimeSlider domain, or the selected interval, then reset the 
+    // TimeSlider to it's initial state
     slider.domain(new Date("2011-01-01T00:00:00Z"),  new Date("2013-01-01T00:00:00Z"));
     slider.select(new Date("2011-02-01T00:00:00Z"),  new Date("2013-02-08T00:00:00Z"))
     slider.reset();
