@@ -294,6 +294,7 @@ class TimeSlider
 
         i = @data[id].index
         delete @data[id]
+        @options.datasetIndex--
         d3.select(@element).select("g.dataset#dataset-#{id}").remove()
 
         # repaint the datasets
