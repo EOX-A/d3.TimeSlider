@@ -188,7 +188,10 @@ class TimeSlider
 
                     for element in data
                         if(Array.isArray(element))
-                            ranges.push(element)
+                            if(element[0] - element[1] == 0)
+                                points.push(element[0])
+                            else
+                                ranges.push(element)
                         else
                             points.push(element)
 
