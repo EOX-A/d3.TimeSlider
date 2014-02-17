@@ -193,7 +193,13 @@ class TimeSlider
                             else
                                 ranges.push(element)
                         else
-                            points.push(element)
+                            # TODO: This if statement is a quick solution for when the 
+                            # server returns a timespan this has to be redesigned
+                            # It assumes start and end time of timespan is equal
+                            if (element.split("/").length>1)
+                                points.push(element.split("/")[0])
+                            else
+                                points.push(element)
 
                     @data[id].ranges = ranges
                     @data[id].points = points
