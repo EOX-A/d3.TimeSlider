@@ -9,6 +9,8 @@ class TimeSlider
         # Debugging?
         @debug = true
 
+        localStorage.clear()
+
         # create the root svg element
         @svg = d3.select(element).append('svg').attr('class', 'timeslider')
 
@@ -147,8 +149,11 @@ class TimeSlider
             el = @svg.select("g.datasets #dataset-#{dataset}")
             d = @data[dataset]
 
-            drawRanges(el, d.ranges, { index: d.index, color: d.color })
-            drawPoints(el, d.points, { index: d.index, color: d.color })
+            points = d.ranges.filter((values) => (@scales.x(new Date(values[1])) - @scales.x(new Date(values[0]))) < 5).map((values) => values[0])
+            ranges = d.ranges.filter((values) => (@scales.x(new Date(values[1])) - @scales.x(new Date(values[0]))) >= 5)
+
+            drawRanges(el, ranges, { index: d.index, color: d.color })
+            drawPoints(el, points.concat(d.points), { index: d.index, color: d.color })
 
         drawRanges = (element, data, options) =>
             element.selectAll('path').remove()
@@ -188,16 +193,12 @@ class TimeSlider
 
                     for element in data
                         if(Array.isArray(element))
-                            if(element[0] - element[1] == 0)
-                                points.push(element[0])
-                            else
-                                ranges.push(element)
+                            ranges.push(element)
                         else
-                            # TODO: This if statement is a quick solution for when the 
-                            # server returns a timespan this has to be redesigned
-                            # It assumes start and end time of timespan is equal
-                            if (element.split("/").length>1)
-                                points.push(element.split("/")[0])
+                            if (!(element instanceof Date) && element.split("/").length>1)
+                                elements = element.split("/")
+                                elements.pop()
+                                ranges.push(elements)
                             else
                                 points.push(element)
 
@@ -340,6 +341,7 @@ class TimeSlider
     reset: ->
         @zoom(@options.domain.start, @options.domain.end)
         true
+
 
 class TimeSlider.Plugin
 
