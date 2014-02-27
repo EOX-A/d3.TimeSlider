@@ -9,7 +9,9 @@ class TimeSlider
         # Debugging?
         @debug = true
 
-        localStorage.clear()
+        #localStorage.clear()
+
+        @bbox = null
 
         # create the root svg element
         @svg = d3.select(element).append('svg').attr('class', 'timeslider')
@@ -143,13 +145,13 @@ class TimeSlider
                 ranges: []
             }
 
-            reloadDataset(dataset.id)
+            @reloadDataset(dataset.id)
 
         @updateDataset = (dataset) =>
             el = @svg.select("g.datasets #dataset-#{dataset}")
             d = @data[dataset]
 
-            points = d.ranges.filter((values) => (@scales.x(new Date(values[1])) - @scales.x(new Date(values[0]))) < 5).map((values) => values[0])
+            points = d.ranges.filter((values) => (@scales.x(new Date(values[1])) - @scales.x(new Date(values[0]))) < 5)#.map((values) => values[0])
             ranges = d.ranges.filter((values) => (@scales.x(new Date(values[1])) - @scales.x(new Date(values[0]))) >= 5)
 
             drawRanges(el, ranges, { index: d.index, color: d.color })
@@ -165,9 +167,15 @@ class TimeSlider
                     d3.svg.line()
                         .x( (a) => @scales.x(new Date(a)) )
                         .y( -5 * options.index )
+                        .defined((a, i) -> i <= 1)
                         .interpolate('linear')
                     )
                 .attr('stroke', options.color)
+                .style('opacity',
+                 (a) => 
+                    if(a[4]==false)
+                        return 0.5
+                    )
 
             r.exit().remove()
 
@@ -177,14 +185,24 @@ class TimeSlider
                .data(data)
 
             p.enter().append('circle')
-                .attr('cx', (a) => @scales.x(new Date(a)) )
+                .attr('cx', (a) => 
+                    if Array.isArray(a)
+                        return @scales.x(new Date(a[0])) 
+                    else
+                        return @scales.x(new Date(a))
+                    )
                 .attr('cy', -5 * options.index )
                 .attr('fill', options.color)
                 .attr('r', 2)
+                .style('opacity',
+                 (a) => 
+                    if(a[4]==false)
+                        return 0.5
+                    )
 
             p.exit().remove()
 
-        reloadDataset = (dataset) =>
+        @reloadDataset = (dataset) =>
             callback = debounce(@options.debounce, dataset, =>
                 @data[dataset].callback(@scales.x.domain()[0], @scales.x.domain()[1], (id, data) =>
                     el = @svg.select("g.datasets #dataset-#{id}")
@@ -205,7 +223,7 @@ class TimeSlider
                     @data[id].ranges = ranges
                     @data[id].points = points
                     @updateDataset(id)
-                )
+                , @bbox)
             )
             callback()
 
@@ -223,7 +241,7 @@ class TimeSlider
 
             # repaint the datasets
             for dataset of @data
-                reloadDataset(dataset)
+                @reloadDataset(dataset)
                 @updateDataset(dataset)
 
         # resizing (the window)
@@ -340,6 +358,14 @@ class TimeSlider
 
     reset: ->
         @zoom(@options.domain.start, @options.domain.end)
+        true
+
+    updateBBox: (bbox, id) ->
+        return false unless @data[id]?
+        @bbox = bbox
+        #d3.select(@element).select("g.dataset#dataset-#{id}").remove()
+        @reloadDataset(id)
+
         true
 
 
