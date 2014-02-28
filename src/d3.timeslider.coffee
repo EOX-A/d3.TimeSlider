@@ -161,24 +161,25 @@ class TimeSlider
             drawPoints(el, points.concat(d.points), { index: d.index, color: d.color })
 
         drawRanges = (element, data, options) =>
-            element.selectAll('path').remove()
+
+            element.selectAll('rect').remove()
+
             r = element.selectAll('path')
                 .data(data)
-
-            r.enter().append('path')
-                .attr('d',
-                    d3.svg.line()
-                        .x( (a) => @scales.x(new Date(a)) )
-                        .y( -11 * options.index )
-                        .defined((a, i) -> i <= 1)
-                        .interpolate('linear')
-                    )
+            
+            r.enter().append('rect')
+                .attr('x', (a)=>  @scales.x(new Date(a[0])) )
+                .attr('y', -11 * options.index + -3)
+                .attr('width', (a)=>  (@scales.x(new Date(a[1])) - @scales.x(new Date(a[0]))) )
+                .attr('height', 6)
                 .attr('stroke', options.color)
-                .style('opacity',
-                 (a) => 
+                .attr('stroke-width', 1)
+                .attr('fill', (a) => 
                     if(a[4]==false)
-                        return 0.5
-                    )
+                        "transparent"
+                    else
+                        options.color
+                )
                 .on("mouseover", (d) ->
                     if (d[2])
                         _this.tooltip.transition()        
@@ -201,7 +202,6 @@ class TimeSlider
                         })
                     )
                 );
-                
 
             r.exit().remove()
 
