@@ -9,6 +9,9 @@ class TimeSlider
         # Debugging?
         @debug = true
 
+        @tooltip = d3.select("body").append("div")   
+            .attr("class", "tooltip")               
+            .style("opacity", 0);
         #localStorage.clear()
 
         @bbox = null
@@ -166,7 +169,7 @@ class TimeSlider
                 .attr('d',
                     d3.svg.line()
                         .x( (a) => @scales.x(new Date(a)) )
-                        .y( -5 * options.index )
+                        .y( -11 * options.index )
                         .defined((a, i) -> i <= 1)
                         .interpolate('linear')
                     )
@@ -176,6 +179,29 @@ class TimeSlider
                     if(a[4]==false)
                         return 0.5
                     )
+                .on("mouseover", (d) ->
+                    if (d[2])
+                        _this.tooltip.transition()        
+                            .duration(200)      
+                            .style("opacity", .9);      
+                        _this.tooltip.html(d[2])  
+                            .style("left", (d3.event.pageX) + "px")     
+                            .style("top", (d3.event.pageY - 28) + "px");    
+                    )                  
+                .on("mouseout", (d) ->
+                    _this.tooltip.transition()        
+                        .duration(500)      
+                        .style("opacity", 0);   
+                ).on('click', (d) ->
+                    _this.element.dispatchEvent(
+                        new CustomEvent('coverageselected', {
+                            bbox: d[3]
+                            bubbles: true,
+                            cancelable: true
+                        })
+                    )
+                );
+                
 
             r.exit().remove()
 
@@ -191,14 +217,43 @@ class TimeSlider
                     else
                         return @scales.x(new Date(a))
                     )
-                .attr('cy', -5 * options.index )
-                .attr('fill', options.color)
-                .attr('r', 2)
-                .style('opacity',
-                 (a) => 
+                .attr('cy', -11 * options.index )
+                .attr('fill', (a) => 
                     if(a[4]==false)
-                        return 0.5
+                        "transparent"
+                    else
+                        options.color
+                        
                     )
+                .attr('stroke', options.color)
+                .attr('stroke-width', 1)
+                .attr('r', 4)
+                .on("mouseover", (d) ->
+                    if (d[2])
+                        _this.tooltip.transition()        
+                            .duration(200)      
+                            .style("opacity", .9);      
+                        _this.tooltip.html(d[2])  
+                            .style("left", (d3.event.pageX) + "px")     
+                            .style("top", (d3.event.pageY - 28) + "px");    
+                    )                  
+                .on("mouseout", (d) ->
+                    _this.tooltip.transition()        
+                        .duration(500)      
+                        .style("opacity", 0);   
+                ).on('click', (d) ->
+                    _this.element.dispatchEvent(
+                        new CustomEvent('coverageselected', {
+                            detail: {
+                                bbox: d[3],
+                                start: d[0],
+                                end:d[1]
+                            }
+                            bubbles: true,
+                            cancelable: true
+                        })
+                    )
+                );
 
             p.exit().remove()
 
