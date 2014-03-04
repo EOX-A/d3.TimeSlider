@@ -31,6 +31,7 @@ class TimeSlider
         @options.brush.start || = @options.start
         @options.brush.end ||= new Date(new Date(@options.brush.start).setDate(@options.brush.start.getDate() + 3))
         @options.debounce ||= 50
+        @options.ticksize ||= 3
 
         # array to hold individual data points / data ranges
         @data = {}
@@ -169,9 +170,9 @@ class TimeSlider
             
             r.enter().append('rect')
                 .attr('x', (a)=>  @scales.x(new Date(a[0])) )
-                .attr('y', -11 * options.index + -3)
+                .attr('y', - (@options.ticksize + 3) * options.index + -(@options.ticksize-2) )
                 .attr('width', (a)=>  (@scales.x(new Date(a[1])) - @scales.x(new Date(a[0]))) )
-                .attr('height', 6)
+                .attr('height', (@options.ticksize-2))
                 .attr('stroke', options.color)
                 .attr('stroke-width', 1)
                 .attr('fill', (a) => 
@@ -196,7 +197,11 @@ class TimeSlider
                 ).on('click', (d) ->
                     _this.element.dispatchEvent(
                         new CustomEvent('coverageselected', {
-                            bbox: d[3]
+                            detail: {
+                                bbox: d[3],
+                                start: d[0],
+                                end:d[1]
+                            }
                             bubbles: true,
                             cancelable: true
                         })
@@ -217,7 +222,7 @@ class TimeSlider
                     else
                         return @scales.x(new Date(a))
                     )
-                .attr('cy', -11 * options.index )
+                .attr('cy', - (@options.ticksize + 3) * options.index + -(@options.ticksize-2)/2)
                 .attr('fill', (a) => 
                     if(a[4]==false)
                         "transparent"
@@ -227,7 +232,7 @@ class TimeSlider
                     )
                 .attr('stroke', options.color)
                 .attr('stroke-width', 1)
-                .attr('r', 4)
+                .attr('r', @options.ticksize/2)
                 .on("mouseover", (d) ->
                     if (d[2])
                         _this.tooltip.transition()        
