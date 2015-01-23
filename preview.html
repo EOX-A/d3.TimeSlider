@@ -55,6 +55,7 @@
 				// Initialize the TimeSlider
 				slider = new TimeSlider(document.getElementById('d3_timeslider'), {
 					debounce: 100,
+					ticksize: 8,
 					domain: {
 						start: new Date("2010-01-01T00:00:00Z"),
 						end: new Date("2012-01-01T00:00:00Z"),
@@ -95,21 +96,6 @@
 								output: "output"
 							})
 						},
-						{
-							id: 'kp',
-							color: 'blue',
-							lineplot: true,
-							data: new TimeSlider.Plugin.WPS({ 
-								url: 'http://localhost:8000/vires00/ows', 
-								eoid: 'kp', 
-								dataset: 'kp',
-								indices: true,
-								processid: "get_indices",
-								collectionid: "index_id",
-								output: "output"
-							})
-						},*/
-						/*,
 						{
 							id: 'fsc',
 							color: 'green',

@@ -183,7 +183,7 @@ class TimeSlider
                 .attr('y', - (@options.ticksize + 3) * options.index + -(@options.ticksize-2) )
                 .attr('width', (a)=>  (@scales.x(new Date(a[1])) - @scales.x(new Date(a[0]))) )
                 .attr('height', (@options.ticksize-2))
-                .attr('stroke', options.color)
+                .attr('stroke', d3.rgb(options.color).darker())
                 .attr('stroke-width', 1)
                 .attr('fill', (a) => 
                     if(a[4]==false)
@@ -240,7 +240,7 @@ class TimeSlider
                         options.color
                         
                     )
-                .attr('stroke', options.color)
+                .attr('stroke', d3.rgb(options.color).darker())
                 .attr('stroke-width', 1)
                 .attr('r', @options.ticksize/2)
                 .on("mouseover", (d) ->
@@ -472,7 +472,7 @@ class TimeSlider
         @options.zoom.translate([ @options.zoom.translate()[0] - @scales.x(start), 0 ])
 
         @redraw()
-        
+
         true
 
     zoom: (params...) ->
