@@ -8,6 +8,7 @@ class TimeSlider
     constructor: (@element, @options = {}) ->
         # Debugging?
         @debug = true
+        @index_cnt = 0
 
         @tooltip = d3.select("body").append("div")   
             .attr("class", "tooltip")               
@@ -72,20 +73,25 @@ class TimeSlider
                 .domain([ @options.domain.start, @options.domain.end ])
                 .range([0, @options.width])
                 .nice()
+            y: d3.scale.linear()
+                .range([@options.height-29, 0])
 
         # axis
         @axis =
             x: d3.svg.axis()
                 .scale(@scales.x)
-                .innerTickSize(@options.height - 13)
+                .innerTickSize(@options.height - 15)
                 .tickFormat(customFormats)
+            y: d3.svg.axis()
+                .scale(@scales.y)
+                .orient("left")
 
         @svg.append('g')
-            .attr('class', 'axis')
+            .attr('class', 'mainaxis')
             .call(@axis.x)
 
         # translate the main x axis
-        d3.select(@element).select('g.axis .domain')
+        d3.select(@element).select('g.mainaxis .domain')
             .attr('transform', "translate(0, #{options.height - 18})")
 
         # brush
@@ -152,20 +158,24 @@ class TimeSlider
             @reloadDataset(dataset.id)
 
         @updateDataset = (dataset) =>
+            #@index_cnt=0
             el = @svg.select("g.datasets #dataset-#{dataset}")
             d = @data[dataset]
 
             points = d.ranges.filter((values) => (@scales.x(new Date(values[1])) - @scales.x(new Date(values[0]))) < 5)#.map((values) => values[0])
             ranges = d.ranges.filter((values) => (@scales.x(new Date(values[1])) - @scales.x(new Date(values[0]))) >= 5)
 
+            if(d.paths && d.paths.length>0)
+                drawPaths(el, d.paths, { index: d.index, color: d.color })
             drawRanges(el, ranges, { index: d.index, color: d.color })
             drawPoints(el, points.concat(d.points), { index: d.index, color: d.color })
+            
 
         drawRanges = (element, data, options) =>
 
             element.selectAll('rect').remove()
 
-            r = element.selectAll('path')
+            r = element.selectAll('rect')
                 .data(data)
             
             r.enter().append('rect')
@@ -262,16 +272,69 @@ class TimeSlider
 
             p.exit().remove()
 
+        drawPaths = (element, data, options) =>
+
+            @index_cnt++;
+
+            @scales.y.domain(d3.extent(data, (d) => d[1]));
+
+            element.selectAll('path').remove()
+            element.selectAll('.y.axis').remove()
+
+            line = d3.svg.line()
+                .x( (a)=> @scales.x(new Date(a[0])))
+                .y( (a)=> @scales.y(a[1]))
+
+            element.append("path")
+                .datum(data)
+                .attr("class", "line")
+                .attr("d", line)
+                .attr('stroke', options.color)
+                .attr('stroke-width', "1.5px")
+                .attr('fill', 'none')
+                .attr('transform', "translate(0,"+ (-@options.height+29)+")")
+
+            element.append("g")
+                .attr("class", "y axis")
+                .attr('fill', options.color)
+                .call(@axis.y)
+                .attr("transform", "translate("+(@index_cnt*30)+","+ (-@options.height+29)+")")
+
+            element.selectAll('.axis .domain')
+                .attr("stroke-width", "1")
+                .attr("stroke", options.color)
+                .attr("shape-rendering", "crispEdges")
+                .attr("fill", "none");
+
+            element.selectAll('.axis line')
+                .attr("stroke-width", "1")
+                .attr("shape-rendering", "crispEdges")
+                .attr("stroke", options.color);
+
+            element.selectAll('.axis path')
+                .attr("stroke-width", "1")
+                .attr("shape-rendering", "crispEdges")
+                .attr("stroke", options.color);
+                
+                
+
+
+
         @reloadDataset = (dataset) =>
             callback = debounce(@options.debounce, dataset, =>
+                @index_cnt = 0
                 @data[dataset].callback(@scales.x.domain()[0], @scales.x.domain()[1], (id, data) =>
                     el = @svg.select("g.datasets #dataset-#{id}")
                     ranges = []
                     points = []
+                    paths = []
 
                     for element in data
                         if(Array.isArray(element))
-                            ranges.push(element)
+                            if(element.length == 3)
+                                paths.push(element)
+                            else
+                                ranges.push(element)
                         else
                             if (!(element instanceof Date) && element.split("/").length>1)
                                 elements = element.split("/")
@@ -282,6 +345,7 @@ class TimeSlider
 
                     @data[id].ranges = ranges
                     @data[id].points = points
+                    @data[id].paths = paths
                     @updateDataset(id)
                 , @bbox)
             )
@@ -292,11 +356,12 @@ class TimeSlider
             do (dataset) => @drawDataset(dataset)
 
         @redraw = =>
+            @index_cnt = 0
             # update brush
             @brush.x(@scales.x).extent(@brush.extent())
 
             # repaint the axis and the brush
-            d3.select(@element).select('g.axis').call(@axis.x)
+            d3.select(@element).select('g.mainaxis').call(@axis.x)
             d3.select(@element).select('g.brush').call(@brush)
 
             # repaint the datasets
@@ -325,6 +390,9 @@ class TimeSlider
             .scaleExtent([1, Infinity])
             .on('zoom', zoom)
         @svg.call(@options.zoom)
+
+        if @options.display
+            @center(@options.display.start, @options.display.end)
 
     # Function pair to allow for easy hiding and showing the time slider
     hide: ->
@@ -385,6 +453,8 @@ class TimeSlider
         @options.datasetIndex--
         d3.select(@element).select("g.dataset#dataset-#{id}").remove()
 
+        @index_cnt = 0
+
         # repaint the datasets
         for dataset of @data
             @data[dataset].index -= 1 if @data[dataset].index > i
@@ -394,6 +464,15 @@ class TimeSlider
 
     # TODO
     center: (params...) ->
+        start = new Date(params[0])
+        end = new Date(params[1])
+        [ start, end ] = [ end, start ] if end < start
+
+        @options.zoom.scale((@options.domain.end - @options.domain.start) / (end - start))
+        @options.zoom.translate([ @options.zoom.translate()[0] - @scales.x(start), 0 ])
+
+        @redraw()
+        
         true
 
     zoom: (params...) ->

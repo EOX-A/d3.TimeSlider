@@ -56,27 +56,18 @@
 				slider = new TimeSlider(document.getElementById('d3_timeslider'), {
 					debounce: 100,
 					domain: {
-						start: new Date("2013-01-01T00:00:00Z"),
-						end: new Date("2014-01-01T00:00:00Z"),
+						start: new Date("2010-01-01T00:00:00Z"),
+						end: new Date("2012-01-01T00:00:00Z"),
 					},
 					brush: {
-						start: new Date("2013-01-05T00:00:00Z"),
-						end: new Date("2013-01-10T00:00:00Z")
+						start: new Date("2012-01-11T00:00:00Z"),
+						end: new Date("2012-01-11T23:00:00Z")
+					},
+					display:{
+						start: new Date("2011-12-25T00:00:00Z"),
+						end: new Date("2012-01-10T00:00:00Z")
 					},
 					datasets: [
-						{
-							id: 'img2012',
-							color: 'red',
-							data: function(start, end, callback) {
-								return callback('img2012', [
-									[ new Date("2013-01-01T12:00:00Z"), new Date("2013-01-01T16:00:00Z") ],
-									[ new Date("2013-01-02T12:00:00Z"), new Date("2013-01-02T16:00:00Z") ],
-									new Date("2013-01-04T00:00:00Z"),
-									[ new Date("2013-01-05T00:00:00Z"), new Date("2013-01-06T00:00:00Z") ],
-									[ new Date("2013-01-06T12:00:00Z"), new Date("2013-01-26T16:00:00Z") ],
-								]);
-							}
-						},
 						{
 							id: 'img2013',
 							color: 'blue',
@@ -90,6 +81,35 @@
 								]);
 							}
 						},
+						/*{
+							id: 'dst',
+							color: 'purple',
+							lineplot: true,
+							data: new TimeSlider.Plugin.WPS({ 
+								url: 'http://localhost:8000/vires00/ows', 
+								eoid: 'dst', 
+								dataset: 'dst',
+								indices: true,
+								processid: "get_indices",
+								collectionid: "index_id",
+								output: "output"
+							})
+						},
+						{
+							id: 'kp',
+							color: 'blue',
+							lineplot: true,
+							data: new TimeSlider.Plugin.WPS({ 
+								url: 'http://localhost:8000/vires00/ows', 
+								eoid: 'kp', 
+								dataset: 'kp',
+								indices: true,
+								processid: "get_indices",
+								collectionid: "index_id",
+								output: "output"
+							})
+						},*/
+						/*,
 						{
 							id: 'fsc',
 							color: 'green',
@@ -104,10 +124,10 @@
 							id: 'spot4',
 							color: 'purple',
 							data: new TimeSlider.Plugin.WPS({ url: 'http://demo.v-manip.eox.at/browse/ows', eoid: 'SPOT4_View', dataset: 'spot4' })
-						}
+						}*/
 					]
 				});
-				slider.updateBBox([5,44,9,47], "spot4");
+				//slider.updateBBox([5,44,9,47], "spot4");
 				// Register a callback for changing the selected time period
 				document.getElementById('d3_timeslider').addEventListener('selectionChanged', function(e){
 					console.log("Custom event handler on the time slider");

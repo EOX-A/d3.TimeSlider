@@ -15,18 +15,20 @@ svg.timeslider {
   -ms-user-select: none;
   user-select: none;
 
-  .axis {
+  .mainaxis {
     fill: none;
 
-    .tick {
+    .tick line{
       stroke: rgba(100, 100, 100, 1);
       shape-rendering: crispEdges;
-
-      text {
-        stroke: rgb(0, 0, 0);
-        font: .7em sans-serif;
-      }
     }
+
+    .tick text {
+      fill: rgb(0, 0, 0);
+      font-weight: bold;
+      font-size: .9em;
+    }
+    
 
     .tick.minor {
       stroke: rgba(100, 100, 100, 0.25);
@@ -39,6 +41,14 @@ svg.timeslider {
     }
   }
 
+  .axis{
+
+    .tick text {
+      font-size: .8em;
+    }
+
+  }
+
   .brush {
     .extent {
       opacity: .9;
@@ -47,11 +57,13 @@ svg.timeslider {
 
   .datasets {
     path {
-      stroke-width: 3;
-      shape-rendering: crispEdges;
+      //stroke-width: 3;
+      //shape-rendering: crispEdges;
     }
   }
 }
+
+
 
 div.tooltip {   
   position: absolute;           
