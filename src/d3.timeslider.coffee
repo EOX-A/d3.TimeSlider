@@ -9,7 +9,7 @@ class TimeSlider
         # Debugging?
         @debug = false
         @brush_tootlip = false
-        @brush_tooltip_offset = 20;
+        @brush_tooltip_offset = [30,20];
         @index_cnt = 0
 
         @tooltip = d3.select("body").append("div")   
@@ -110,8 +110,8 @@ class TimeSlider
         @setBrushTooltip = (active) =>
             @brush_tootlip = active
 
-        @setBrushTooltipOffset = (y_offset) =>
-            @brush_tooltip_offset = y_offset
+        @setBrushTooltipOffset = (offset) =>
+            @brush_tooltip_offset = offset
 
 
         # brush
@@ -164,16 +164,16 @@ class TimeSlider
                         .duration(100)
                         .style("opacity", .9);
                     @tooltip_brush_min.html(@simplifyDate(@brush.extent()[0]))
-                        .style("left", (@scales.x(@brush.extent()[0])+30) + "px")
-                        .style("top", (@svg[0][0].parentElement.offsetHeight + @brush_tooltip_offset) + "px");
+                        .style("left", (@scales.x(@brush.extent()[0])+@brush_tooltip_offset[0]) + "px")
+                        .style("top", (@svg[0][0].parentElement.offsetHeight + @brush_tooltip_offset[1]) + "px");
 
 
                     @tooltip_brush_max.transition()
                         .duration(100)
                         .style("opacity", .9);
                     @tooltip_brush_max.html(@simplifyDate(@brush.extent()[1]))
-                        .style("left", (@scales.x(@brush.extent()[1])+30) + "px")
-                        .style("top", (@svg[0][0].parentElement.offsetHeight + @brush_tooltip_offset + 20) + "px");
+                        .style("left", (@scales.x(@brush.extent()[1])+@brush_tooltip_offset[0]) + "px")
+                        .style("top", (@svg[0][0].parentElement.offsetHeight + @brush_tooltip_offset[1] + 20) + "px");
 
             )
             .extent([@options.brush.start, @options.brush.end])
@@ -242,7 +242,7 @@ class TimeSlider
                     .attr('x', (a)=>  @scales.x(a) )
                     .attr('y', 0 )
                     .attr('width', (a)=>  1 )
-                    .attr('height', (@options.height))
+                    .attr('height', (@options.height-20))
                     .attr('stroke', 'red')
                     .attr('stroke-width', 1)
                     .attr('fill', (a) =>  options.color)
@@ -272,19 +272,19 @@ class TimeSlider
                 )
                 .on("mouseover", (d) ->
                     if (d[2])
-                        @tooltip.transition()        
+                        _this.tooltip.transition()        
                             .duration(200)      
                             .style("opacity", .9);      
-                        @tooltip.html(d[2])  
+                        _this.tooltip.html(d[2])  
                             .style("left", (d3.event.pageX) + "px")     
                             .style("top", (d3.event.pageY - 28) + "px");    
                     )                  
                 .on("mouseout", (d) ->
-                    @tooltip.transition()        
+                    _this.tooltip.transition()        
                         .duration(500)      
                         .style("opacity", 0);   
                 ).on('click', (d) ->
-                    @element.dispatchEvent(
+                    _this.element.dispatchEvent(
                         new CustomEvent('coverageselected', {
                             detail: {
                                 bbox: d[3],
@@ -324,19 +324,19 @@ class TimeSlider
                 .attr('r', @options.ticksize/2)
                 .on("mouseover", (d) ->
                     if (d[2])
-                        @tooltip.transition()        
+                        _this.tooltip.transition()        
                             .duration(200)      
                             .style("opacity", .9);      
-                        @tooltip.html(d[2])  
+                        _this.tooltip.html(d[2])  
                             .style("left", (d3.event.pageX) + "px")     
                             .style("top", (d3.event.pageY - 28) + "px");    
                     )                  
                 .on("mouseout", (d) ->
-                    @tooltip.transition()        
+                    _this.tooltip.transition()        
                         .duration(500)      
                         .style("opacity", 0);   
                 ).on('click', (d) ->
-                    @element.dispatchEvent(
+                    _this.element.dispatchEvent(
                         new CustomEvent('coverageselected', {
                             detail: {
                                 bbox: d[3],
