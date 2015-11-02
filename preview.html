@@ -115,9 +115,20 @@
 				});
 				//slider.updateBBox([5,44,9,47], "spot4");
 				// Register a callback for changing the selected time period
+
+				// Add timetick
+				slider.setTimetick(new Date("Wed Dec 28 2011 08:10:10 GMT+0100"));
+
+				// Add selection helpers
+				slider.setBrushTooltip(true);
+
+				// Set the offset of the tooltip
+				//slider.setBrushTooltipOffset(50);
+
 				document.getElementById('d3_timeslider').addEventListener('selectionChanged', function(e){
 					console.log("Custom event handler on the time slider");
 					console.log(e.detail);
+
 				});
 
 			}, false);
