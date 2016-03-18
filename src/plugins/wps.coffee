@@ -65,7 +65,7 @@ class TimeSlider.Plugin.WPS
                 request = d3.csv(@options.url)
 
                 if @options.csrftoken
-                    request.header("X-CSRF-Token", @options.csrftoken)
+                    request.header("X-CSRFToken", @options.csrftoken)
 
                 request.post(postdata, (error, response) =>
                     callback(@options.dataset, []) if error
