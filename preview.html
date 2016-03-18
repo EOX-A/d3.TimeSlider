@@ -11,8 +11,8 @@
 			<link href="dependencies/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css" media="screen" />
 
 			<!-- Timeslider -->
-			<script src="dependencies/d3.v3/d3.v3.min.js" charset="utf-8"></script>
-			<script src="dependencies/libcoverage.js/libcoverage.min.js" charset="utf-8"></script>
+			<script src="dependencies/d3/d3.min.js" charset="utf-8"></script>
+			<script src="dependencies/libcoverage.js/libcoverage.wcs.js" charset="utf-8"></script>
 			<script src="build/d3.timeslider.js"></script>
 			<script src="build/d3.timeslider.plugins.js"></script>
 			<link href="build/d3.timeslider.css" rel="stylesheet" type="text/css" media="all" />
@@ -105,12 +105,12 @@
 							id: 'asar',
 							color: 'purple',
 							data: new TimeSlider.Plugin.WMS({ url: 'http://data.eox.at/instance01/ows', eoid: 'ASAR_IMM_L1_view', dataset: 'asar' })
-						},
+						},*/
 						{
 							id: 'spot4',
 							color: 'purple',
 							data: new TimeSlider.Plugin.WPS({ url: 'http://demo.v-manip.eox.at/browse/ows', eoid: 'SPOT4_View', dataset: 'spot4' })
-						}*/
+						}
 					]
 				});
 				//slider.updateBBox([5,44,9,47], "spot4");

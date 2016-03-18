@@ -10,6 +10,7 @@ class TimeSlider.Plugin.WPS
         @current_data = null
         @current_start = new Date();
         @current_end = new Date();
+        @options.csrftoken ||= false
 
 
         callback = (start, end, callback, bbox) =>
@@ -62,6 +63,9 @@ class TimeSlider.Plugin.WPS
                     """
                     
                 request = d3.csv(@options.url)
+
+                if @options.csrftoken
+                    request.header("X-CSRF-Token", @options.csrftoken)
 
                 request.post(postdata, (error, response) =>
                     callback(@options.dataset, []) if error
