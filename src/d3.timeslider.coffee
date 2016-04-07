@@ -10,7 +10,6 @@ class TimeSlider
         @debug = false
         @brush_tootlip = false
         @brush_tooltip_offset = [30,20];
-        @index_cnt = 0
 
         @tooltip = d3.select("body").append("div")   
             .attr("class", "tooltip")               
@@ -193,25 +192,41 @@ class TimeSlider
             .attr('transform', "translate(0, #{options.height - 23})")
 
         @drawDataset = (dataset) =>
-            @svg.select('g.datasets')
-                .append('g')
-                    .attr('class', 'dataset')
-                    .attr('id', "dataset-#{dataset.id}")
-            el = @svg.select("g.datasets #dataset-#{dataset.id}")
+            
             @options.datasetIndex = 0 unless @options.datasetIndex?
+            @options.linegraphIndex = 0 unless @options.linegraphIndex?
+
+            index = @options.datasetIndex
+            lineplot = false
+
+            if !dataset.lineplot
+                index = @options.datasetIndex++
+                @svg.select('g.datasets')
+                    .insert('g',':first-child')
+                        .attr('class', 'dataset')
+                        .attr('id', "dataset-#{dataset.id}")
+            else
+                index = @options.linegraphIndex++
+                lineplot = true
+                @svg.select('g.datasets')
+                    .append('g')
+                        .attr('class', 'dataset')
+                        .attr('id', "dataset-#{dataset.id}")
+
 
             @data[dataset.id] = {
-                index: @options.datasetIndex++,
+                index: index,
                 color: dataset.color,
                 callback: dataset.data,
                 points: [],
-                ranges: []
+                ranges: [],
+                lineplot: lineplot
             }
-
+            
             @reloadDataset(dataset.id)
 
         @updateDataset = (dataset) =>
-            #@index_cnt=0
+
             el = @svg.select("g.datasets #dataset-#{dataset}")
             d = @data[dataset]
 
@@ -220,8 +235,9 @@ class TimeSlider
 
             if(d.paths && d.paths.length>0)
                 drawPaths(el, d.paths, { index: d.index, color: d.color })
-            drawRanges(el, ranges, { index: d.index, color: d.color })
-            drawPoints(el, points.concat(d.points), { index: d.index, color: d.color })
+            else
+                drawRanges(el, ranges, { index: d.index, color: d.color })
+                drawPoints(el, points.concat(d.points), { index: d.index, color: d.color })
 
 
         @setTimetick = (date) =>
@@ -353,18 +369,31 @@ class TimeSlider
 
         drawPaths = (element, data, options) =>
 
-            @index_cnt++;
-
             @scales.y.domain(d3.extent(data, (d) => d[1]));
 
             element.selectAll('path').remove()
             element.selectAll('.y.axis').remove()
 
+
             line = d3.svg.line()
                 .x( (a)=> @scales.x(new Date(a[0])))
                 .y( (a)=> @scales.y(a[1]))
 
+            # TODO: Tests with clipping mask for better readability
+            # element.attr("clip-path", "url(#clip)")
+
+            # clippath = element.append("defs").append("svg:clipPath")
+            #     .attr("id", "clip")
+
+            # element.select("#clip").append("svg:rect")
+            #         .attr("id", "clip-rect")
+            #         .attr("x", (options.index+1)*30)
+            #         .attr("y", -@options.height)
+            #         .attr("width", 100)
+            #         .attr("height", 100)
+
             element.append("path")
+                .attr("clip-path", "url(#clip)")
                 .datum(data)
                 .attr("class", "line")
                 .attr("d", line)
@@ -373,11 +402,19 @@ class TimeSlider
                 .attr('fill', 'none')
                 .attr('transform', "translate(0,"+ (-@options.height+29)+")")
 
+            
+            step = (@scales.y.domain()[1] - @scales.y.domain()[0])/4
+            @axis.y.tickValues(
+                d3.range(@scales.y.domain()[0],@scales.y.domain()[1]+step, step)
+            )
+
             element.append("g")
                 .attr("class", "y axis")
                 .attr('fill', options.color)
                 .call(@axis.y)
-                .attr("transform", "translate("+(@index_cnt*30)+","+ (-@options.height+29)+")")
+                .attr("transform", "translate("+((options.index+1)*30)+","+ (-@options.height+29)+")")
+                
+
 
             element.selectAll('.axis .domain')
                 .attr("stroke-width", "1")
@@ -401,7 +438,6 @@ class TimeSlider
 
         @reloadDataset = (dataset) =>
             callback = debounce(@options.debounce, dataset, =>
-                @index_cnt = 0
                 @data[dataset].callback(@scales.x.domain()[0], @scales.x.domain()[1], (id, data) =>
                     el = @svg.select("g.datasets #dataset-#{id}")
                     ranges = []
@@ -435,7 +471,7 @@ class TimeSlider
             do (dataset) => @drawDataset(dataset)
 
         @redraw = =>
-            @index_cnt = 0
+
             # update brush
             @brush.x(@scales.x).extent(@brush.extent())
 
@@ -444,9 +480,17 @@ class TimeSlider
             d3.select(@element).select('g.brush').call(@brush)
 
             # repaint the datasets
+            # First paint lines and ticks
             for dataset of @data
-                @reloadDataset(dataset)
-                @updateDataset(dataset)
+                if !@data[dataset].lineplot
+                    @reloadDataset(dataset)
+                    @updateDataset(dataset)
+
+            # Afterwards paint lines so they are not overlapped
+            for dataset of @data
+                if @data[dataset].lineplot
+                    @reloadDataset(dataset)
+                    @updateDataset(dataset)
 
             # repaint timetick
             drawTimetick() 
@@ -531,17 +575,21 @@ class TimeSlider
         return false unless @data[id]?
 
         i = @data[id].index
+        lp = @data[id].lineplot
         delete @data[id]
-        @options.datasetIndex--
+
+        if lp
+            @options.linegraphIndex--
+        else
+            @options.datasetIndex--
+        
         d3.select(@element).select("g.dataset#dataset-#{id}").remove()
 
-        @index_cnt = 0
-
-        # repaint the datasets
         for dataset of @data
-            @data[dataset].index -= 1 if @data[dataset].index > i
-            @updateDataset(dataset)
+            if lp == @data[dataset].lineplot
+                @data[dataset].index -= 1 if @data[dataset].index > i
 
+        @redraw()
         true
 
     # TODO

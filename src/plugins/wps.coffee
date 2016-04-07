@@ -74,7 +74,8 @@ class TimeSlider.Plugin.WPS
 
                     for coverage in response
                         if (@options.indices)
-                            datasets.push([ new Date(coverage.time), parseFloat(coverage.value), coverage.id])
+                            datestring = coverage.time.replace(" ","T")
+                            datasets.push([ new Date(datestring), parseFloat(coverage.value), coverage.id])
                         else
                             inside = false
                             if !@current_bbox

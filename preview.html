@@ -28,6 +28,7 @@
 				}
 
 				div#d3_timeslider {
+					height: 13em;
 					width: 90%;
 					margin: 3em 0;
 					padding: 3em 5%;
@@ -65,10 +66,24 @@
 						end: new Date("2012-01-11T23:00:00Z")
 					},
 					display:{
-						start: new Date("2011-12-25T00:00:00Z"),
-						end: new Date("2012-01-10T00:00:00Z")
+						start: new Date("2015-12-25T00:00:00Z"),
+						end: new Date("2016-05-10T00:00:00Z")
 					},
 					datasets: [
+						{
+							id: 'dst',
+							color: 'purple',
+							lineplot: true,
+							data: new TimeSlider.Plugin.WPS({ 
+								url: 'http://localhost:8300/ows', 
+								eoid: 'dst', 
+								dataset: 'dst',
+								indices: true,
+								processid: "get_indices",
+								collectionid: "index_id",
+								output: "output"
+							})
+						},
 						{
 							id: 'img2013',
 							color: 'blue',
@@ -81,22 +96,23 @@
 									[ new Date("2012-01-06T12:00:00Z"), new Date("2012-01-06T16:00:00Z") ],
 								]);
 							}
-						},
-						/*{
-							id: 'dst',
-							color: 'purple',
+						}/*,
+						
+						{
+							id: 'kp',
+							color: 'red',
 							lineplot: true,
 							data: new TimeSlider.Plugin.WPS({ 
-								url: 'http://localhost:8000/vires00/ows', 
-								eoid: 'dst', 
-								dataset: 'dst',
+								url: 'http://localhost:8300/ows', 
+								eoid: 'kp', 
+								dataset: 'kp',
 								indices: true,
 								processid: "get_indices",
 								collectionid: "index_id",
 								output: "output"
 							})
-						},
-						{
+						},*/
+						/*{
 							id: 'fsc',
 							color: 'green',
 							data: new TimeSlider.Plugin.EOWCS({ url: 'http://neso.cryoland.enveo.at/cryoland/ows', eoid: 'daily_FSC_PanEuropean_Optical', dataset: 'fsc' })
@@ -105,25 +121,87 @@
 							id: 'asar',
 							color: 'purple',
 							data: new TimeSlider.Plugin.WMS({ url: 'http://data.eox.at/instance01/ows', eoid: 'ASAR_IMM_L1_view', dataset: 'asar' })
-						},*/
+						},
 						{
 							id: 'spot4',
 							color: 'purple',
 							data: new TimeSlider.Plugin.WPS({ url: 'http://demo.v-manip.eox.at/browse/ows', eoid: 'SPOT4_View', dataset: 'spot4' })
-						}
+						}*/
 					]
 				});
 				//slider.updateBBox([5,44,9,47], "spot4");
 				// Register a callback for changing the selected time period
 
 				// Add timetick
-				slider.setTimetick(new Date("Wed Dec 28 2011 08:10:10 GMT+0100"));
+				//slider.setTimetick(new Date("Wed Dec 28 2011 08:10:10 GMT+0100"));
 
 				// Add selection helpers
 				slider.setBrushTooltip(true);
 
 				// Set the offset of the tooltip
 				slider.setBrushTooltipOffset([35,25]);
+
+				/*slider.addDataset(
+					{
+							id: 'dst',
+							color: 'purple',
+							lineplot: true,
+							data: new TimeSlider.Plugin.WPS({ 
+								url: 'http://localhost:8300/ows', 
+								eoid: 'dst', 
+								dataset: 'dst',
+								indices: true,
+								processid: "get_indices",
+								collectionid: "index_id",
+								output: "output"
+							})
+						}
+				);*/
+
+				/*slider.addDataset(
+						{
+							id: 'img2013',
+							color: 'blue',
+							data: function(start, end, callback) {
+								return callback('img2013', [
+									[ new Date("2011-01-01T12:00:00Z"), new Date("2012-01-01T16:00:00Z") ],
+									new Date("2012-01-02T12:00:00Z"),
+									new Date("2012-01-04T00:00:00Z"),
+									[ new Date("2012-01-05T00:00:00Z"), new Date("2012-01-06T00:00:00Z") ],
+									[ new Date("2012-01-06T12:00:00Z"), new Date("2012-01-06T16:00:00Z") ],
+								]);
+							}
+						}
+				);
+
+				slider.addDataset(
+
+						{
+							id: 'kp',
+							color: 'red',
+							lineplot: true,
+							data: new TimeSlider.Plugin.WPS({ 
+								url: 'http://localhost:8300/ows', 
+								eoid: 'kp', 
+								dataset: 'kp',
+								indices: true,
+								processid: "get_indices",
+								collectionid: "index_id",
+								output: "output"
+							})
+						}
+				)*/
+
+				/*slider.addDataset({
+                    id: "SW_OPER_MAGB_LR_1B",
+                    color: "#ff7f0e",
+                    data: new TimeSlider.Plugin.WPS({
+                        url: "http://localhost:8300/ows",
+                        eoid: "SW_OPER_MAGB_LR_1B",
+                        dataset: "SW_OPER_MAGB_LR_1B" ,
+                        bbox: [-74.99999997118637, -22.509452604501153, 105.00000002881363,  67.49054739549885]
+                     })
+                  });*/
 
 				document.getElementById('d3_timeslider').addEventListener('selectionChanged', function(e){
 					console.log("Custom event handler on the time slider");
