@@ -393,7 +393,7 @@ class TimeSlider
             #         .attr("height", 100)
 
             element.append("path")
-                .attr("clip-path", "url(#clip)")
+                #.attr("clip-path", "url(#clip)")
                 .datum(data)
                 .attr("class", "line")
                 .attr("d", line)
