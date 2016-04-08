@@ -1,5 +1,21 @@
 class TimeSlider
 
+    # TODO: Not sure if this is the only solution but this is needed to make sure
+    #       events can be dispatched in Internet Explorer 11 (and below)
+    `(function () {
+      function CustomEvent ( event, params ) {
+        params = params || { bubbles: false, cancelable: false, detail: undefined };
+        var evt = document.createEvent( 'CustomEvent' );
+        evt.initCustomEvent( event, params.bubbles, params.cancelable, params.detail );
+        return evt;
+       }
+
+      CustomEvent.prototype = window.Event.prototype;
+
+      window.CustomEvent = CustomEvent;
+    })();`
+
+
     # TODO
     #  * Implement a function to fetch dataset information from a WMS / WCS service
     #  * Compute the padding at the left & right of the timeslider
@@ -155,6 +171,11 @@ class TimeSlider
             )
             .on('brush', =>
                 if (@brush_tootlip)
+                    offheight = 0
+                    if @svg[0][0].parentElement?
+                        offheight = @svg[0][0].parentElement.offsetHeight
+                    else
+                        offheight = @svg[0][0].parentNode.offsetHeight
                     @options.zoom
                         .scale(@options.lastZoom.scale)
                         .translate(@options.lastZoom.translate)
@@ -164,7 +185,7 @@ class TimeSlider
                         .style("opacity", .9);
                     @tooltip_brush_min.html(@simplifyDate(@brush.extent()[0]))
                         .style("left", (@scales.x(@brush.extent()[0])+@brush_tooltip_offset[0]) + "px")
-                        .style("top", (@svg[0][0].parentElement.offsetHeight + @brush_tooltip_offset[1]) + "px");
+                        .style("top", (offheight + @brush_tooltip_offset[1]) + "px");
 
 
                     @tooltip_brush_max.transition()
@@ -172,7 +193,7 @@ class TimeSlider
                         .style("opacity", .9);
                     @tooltip_brush_max.html(@simplifyDate(@brush.extent()[1]))
                         .style("left", (@scales.x(@brush.extent()[1])+@brush_tooltip_offset[0]) + "px")
-                        .style("top", (@svg[0][0].parentElement.offsetHeight + @brush_tooltip_offset[1] + 20) + "px");
+                        .style("top", (offheight + @brush_tooltip_offset[1] + 20) + "px");
 
             )
             .extent([@options.brush.start, @options.brush.end])
