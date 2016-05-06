@@ -24,7 +24,7 @@ class TimeSlider
     constructor: (@element, @options = {}) ->
         # Debugging?
         @debug = false
-        @brush_tootlip = false
+        @brush_tooltip = false
         @brush_tooltip_offset = [30,20];
 
         @tooltip = d3.select("body").append("div")   
@@ -58,12 +58,13 @@ class TimeSlider
         @options.brush.end ||= new Date(new Date(@options.brush.start).setDate(@options.brush.start.getDate() + 3))
         @options.debounce ||= 50
         @options.ticksize ||= 3
+        @options.selectionLimit ||= -1
 
         # array to hold individual data points / data ranges
         @data = {}
 
         @timetickDate = false;
-        @simplifyDate = d3.time.format("%d.%m.%Y - %H:%M:%S")
+        @simplifyDate = d3.time.format.utc("%d.%m.%Y - %H:%M:%S")
 
         # debounce function for rate limiting
         @timeouts = []
@@ -75,24 +76,16 @@ class TimeSlider
                 window.clearTimeout(@timeouts[id]) if @timeouts[id] > -1
                 @timeouts[id] = window.setTimeout(fn, timeout)
 
-        # create a custom formatter for labeling ticks
-        customFormatter = (formats) =>
-            (date) ->
-                i = formats.length - 1
-                f = formats[i]
 
-                f = formats[i--] until f[1](date)
-                f[0](date)
-
-        customFormats = customFormatter([
-            [d3.time.format("%Y"), -> true ],
-            [d3.time.format("%B %Y"), (d) -> d.getUTCMonth() ],
-            [d3.time.format("%b %d %Y"), (d) -> d.getUTCDate() != 1 ],
-            [d3.time.format("%b %d %Y "), (d) ->d.getUTCDay() && d.getUTCDate() != 1 ],
-            [d3.time.format("%I %p"), (d) -> d.getUTCHours() ],
-            [d3.time.format("%I:%M"), (d) -> d.getUTCMinutes() ],
-            [d3.time.format(":%S"), (d) -> d.getUTCSeconds() ],
-            [d3.time.format(".%L"), (d) -> d.getUTCMilliseconds() ]
+        customFormats = d3.time.format.utc.multi([
+            [".%L", (d) -> d.getUTCMilliseconds() ]
+            [":%S", (d) -> d.getUTCSeconds() ],
+            ["%H:%M", (d) -> d.getUTCMinutes() ],
+            ["%H:%M", (d) -> d.getUTCHours() ],
+            ["%b %d %Y ", (d) ->d.getUTCDay() && d.getUTCDate() != 1 ],
+            ["%b %d %Y", (d) -> d.getUTCDate() != 1 ],
+            ["%B %Y", (d) -> d.getUTCMonth() ],
+            ["%Y", -> true ]
         ])
 
         # scales
@@ -123,7 +116,7 @@ class TimeSlider
             .attr('transform', "translate(0, #{options.height - 18})")
 
         @setBrushTooltip = (active) =>
-            @brush_tootlip = active
+            @brush_tooltip = active
 
         @setBrushTooltipOffset = (offset) =>
             @brush_tooltip_offset = offset
@@ -148,6 +141,17 @@ class TimeSlider
                     .scale(@options.lastZoom.scale)
                     .translate(@options.lastZoom.translate)
                     .on('zoom', zoom)
+
+                # Check for selection limit and reduce to correct size
+                if(@options.selectionLimit > 0)
+                    @svg.selectAll('.brush')
+                        .attr({fill: "#333"})
+                    s = @brush.extent()
+                    if ((s[1]-s[0])/1000 >= @options.selectionLimit)
+                        tmpdate = new Date(@brush.extent()[0].getTime()+@options.selectionLimit*1000)
+                        @brush.extent([@brush.extent()[0],tmpdate])
+                        d3.select(@element).select('g.brush').call(@brush)
+
                 @element.dispatchEvent(
                     new CustomEvent('selectionChanged', {
                         detail: {
@@ -159,7 +163,7 @@ class TimeSlider
                     })
                 )
 
-                if (@brush_tootlip)
+                if (@brush_tooltip)
                     @tooltip_brush_min.transition()
                         .duration(100)
                         .style("opacity", 0);
@@ -170,7 +174,18 @@ class TimeSlider
 
             )
             .on('brush', =>
-                if (@brush_tootlip)
+                # Check for selection limit, warn in red if selection is to big
+                if(@options.selectionLimit > 0)
+                    s = @brush.extent()
+                    if ((s[1]-s[0])/1000 > @options.selectionLimit)
+                        @svg.selectAll('.brush')
+                            .attr({fill: "red"})
+                            
+                    else
+                        @svg.selectAll('.brush')
+                            .attr({fill: "#333"})
+
+                if (@brush_tooltip)
                     offheight = 0
                     if @svg[0][0].parentElement?
                         offheight = @svg[0][0].parentElement.offsetHeight
@@ -183,6 +198,7 @@ class TimeSlider
                     @tooltip_brush_min.transition()
                         .duration(100)
                         .style("opacity", .9);
+                    #console.log("Label time: "+@brush.extent())
                     @tooltip_brush_min.html(@simplifyDate(@brush.extent()[0]))
                         .style("left", (@scales.x(@brush.extent()[0])+@brush_tooltip_offset[0]) + "px")
                         .style("top", (offheight + @brush_tooltip_offset[1]) + "px");
