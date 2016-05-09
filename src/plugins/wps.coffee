@@ -1,4 +1,4 @@
-class TimeSlider.Plugin.WPS
+class window.TimeSlider.Plugin.WPS
     
     constructor: (@options = {})->
 

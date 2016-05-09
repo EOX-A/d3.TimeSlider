@@ -1,4 +1,4 @@
-class TimeSlider.Plugin.WMS
+class window.TimeSlider.Plugin.WMS
     constructor: (@options = {})->
         callback = (start, end, callback) =>
             @data = JSON.parse(localStorage.getItem(@options.url)) if JSON?

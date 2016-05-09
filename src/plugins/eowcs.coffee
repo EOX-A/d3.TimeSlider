@@ -1,4 +1,4 @@
-class TimeSlider.Plugin.EOWCS
+class window.TimeSlider.Plugin.EOWCS
     constructor: (@options = {})->
 
         @formatDate = (date) ->

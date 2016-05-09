@@ -22,50 +22,61 @@ class TimeSlider
     #  * TESTING
 
     constructor: (@element, @options = {}) ->
-        # Debugging?
-        @debug = false
-        @brush_tootlip = false
-        @brush_tooltip_offset = [30,20];
+        @brushTooltip = false
+        @brushTooltipOffset = [30, 20];
 
         @tooltip = d3.select("body").append("div")   
             .attr("class", "tooltip")               
             .style("opacity", 0);
 
-        @tooltip_brush_min = d3.select("body").append("div")   
+        @tooltipBrushMin = d3.select("body").append("div")   
             .attr("class", "tooltip")               
             .style("opacity", 0);
-        @tooltip_brush_max = d3.select("body").append("div")   
+        @tooltipBrushMax = d3.select("body").append("div")   
             .attr("class", "tooltip")               
             .style("opacity", 0);
 
-        #localStorage.clear()
-
-        @bbox = null
+        # used for show()/hide()
+        @originalDisplay = @element.style.display
 
         # create the root svg element
-        @svg = d3.select(element).append('svg').attr('class', 'timeslider')
+        @svg = d3.select(element).append('svg')
+            .attr('class', 'timeslider')
+
+
+        # TODO: what does this do???
 
         @useBBox = false;
-        if(@svg[0][0].clientWidth == 0)
-            d3.select(element).select('svg').append('rect').attr('width', '100%').attr('height', '100%').attr('opacity', '0')
+        if @svg[0][0].clientWidth == 0
+            d3.select(element).select('svg')
+                .append('rect').attr('width', '100%')
+                .attr('height', '100%')
+                .attr('opacity', '0')
             @useBBox = true
 
         # default options and other variables for later
-        @options.width = if @useBBox then @svg[0][0].getBBox().width else @options.width  = @svg[0][0].clientWidth
-        @options.height = if @useBBox then @svg[0][0].getBBox().height else @svg[0][0].clientHeight
+        if @useBBox
+            @options.width = @svg[0][0].getBBox().width
+            @options.height = @svg[0][0].getBBox().height
+        else
+            @options.width = @svg[0][0].clientWidth
+            @options.height = @svg[0][0].clientHeight
+
         @options.brush ||= {}
         @options.brush.start || = @options.start
         @options.brush.end ||= new Date(new Date(@options.brush.start).setDate(@options.brush.start.getDate() + 3))
         @options.debounce ||= 50
         @options.ticksize ||= 3
+        @options.datasets ||= []
 
-        # array to hold individual data points / data ranges
-        @data = {}
+        # object to hold individual data points / data ranges
+        @datasets = {}
 
         @timetickDate = false;
         @simplifyDate = d3.time.format("%d.%m.%Y - %H:%M:%S")
 
         # debounce function for rate limiting
+        # TODO: find a better solution
         @timeouts = []
         debounce = (timeout, id, fn) =>
             return unless timeout and id and fn
@@ -122,14 +133,7 @@ class TimeSlider
         d3.select(@element).select('g.mainaxis .domain')
             .attr('transform', "translate(0, #{options.height - 18})")
 
-        @setBrushTooltip = (active) =>
-            @brush_tootlip = active
-
-        @setBrushTooltipOffset = (offset) =>
-            @brush_tooltip_offset = offset
-
-
-        # brush
+        # create the brush with all necessary event callbacks
         @brush = d3.svg.brush()
             .x(@scales.x)
             .on('brushstart', =>
@@ -159,18 +163,18 @@ class TimeSlider
                     })
                 )
 
-                if (@brush_tootlip)
-                    @tooltip_brush_min.transition()
+                if (@brushTooltip)
+                    @tooltipBrushMin.transition()
                         .duration(100)
                         .style("opacity", 0);
 
-                    @tooltip_brush_max.transition()
+                    @tooltipBrushMax.transition()
                         .duration(100)
                         .style("opacity", 0);
 
             )
             .on('brush', =>
-                if (@brush_tootlip)
+                if (@brushTooltip)
                     offheight = 0
                     if @svg[0][0].parentElement?
                         offheight = @svg[0][0].parentElement.offsetHeight
@@ -180,24 +184,25 @@ class TimeSlider
                         .scale(@options.lastZoom.scale)
                         .translate(@options.lastZoom.translate)
                        
-                    @tooltip_brush_min.transition()
+                    @tooltipBrushMin.transition()
                         .duration(100)
                         .style("opacity", .9);
-                    @tooltip_brush_min.html(@simplifyDate(@brush.extent()[0]))
-                        .style("left", (@scales.x(@brush.extent()[0])+@brush_tooltip_offset[0]) + "px")
-                        .style("top", (offheight + @brush_tooltip_offset[1]) + "px");
+                    @tooltipBrushMin.html(@simplifyDate(@brush.extent()[0]))
+                        .style("left", (@scales.x(@brush.extent()[0])+@brushTooltipOffset[0]) + "px")
+                        .style("top", (offheight + @brushTooltipOffset[1]) + "px");
 
 
-                    @tooltip_brush_max.transition()
+                    @tooltipBrushMax.transition()
                         .duration(100)
                         .style("opacity", .9);
-                    @tooltip_brush_max.html(@simplifyDate(@brush.extent()[1]))
-                        .style("left", (@scales.x(@brush.extent()[1])+@brush_tooltip_offset[0]) + "px")
-                        .style("top", (offheight + @brush_tooltip_offset[1] + 20) + "px");
+                    @tooltipBrushMax.html(@simplifyDate(@brush.extent()[1]))
+                        .style("left", (@scales.x(@brush.extent()[1])+@brushTooltipOffset[0]) + "px")
+                        .style("top", (offheight + @brushTooltipOffset[1] + 20) + "px");
 
             )
             .extent([@options.brush.start, @options.brush.end])
 
+        # add a group to draw the brush in
         @svg.append('g')
             .attr('class', 'brush')
             .call(@brush)
@@ -205,352 +210,361 @@ class TimeSlider
                 .attr('height', "#{@options.height - 19}")
                 .attr('y', 0)
 
-        # datasets
+        # add a group that contains all datasets
         @svg.append('g')
             .attr('class', 'datasets')
             .attr('width', @options.width)
             .attr('height', @options.height)
             .attr('transform', "translate(0, #{options.height - 23})")
 
-        @drawDataset = (dataset) =>
-            
-            @options.datasetIndex = 0 unless @options.datasetIndex?
-            @options.linegraphIndex = 0 unless @options.linegraphIndex?
-
-            index = @options.datasetIndex
-            lineplot = false
-
-            if !dataset.lineplot
-                index = @options.datasetIndex++
-                @svg.select('g.datasets')
-                    .insert('g',':first-child')
-                        .attr('class', 'dataset')
-                        .attr('id', "dataset-#{dataset.id}")
-            else
-                index = @options.linegraphIndex++
-                lineplot = true
-                @svg.select('g.datasets')
-                    .append('g')
-                        .attr('class', 'dataset')
-                        .attr('id', "dataset-#{dataset.id}")
-
-
-            @data[dataset.id] = {
-                index: index,
-                color: dataset.color,
-                callback: dataset.data,
-                points: [],
-                ranges: [],
-                lineplot: lineplot
-            }
-            
-            @reloadDataset(dataset.id)
-
-        @updateDataset = (dataset) =>
-
-            el = @svg.select("g.datasets #dataset-#{dataset}")
-            d = @data[dataset]
-
-            points = d.ranges.filter((values) => (@scales.x(new Date(values[1])) - @scales.x(new Date(values[0]))) < 5)#.map((values) => values[0])
-            ranges = d.ranges.filter((values) => (@scales.x(new Date(values[1])) - @scales.x(new Date(values[0]))) >= 5)
-
-            if(d.paths && d.paths.length>0)
-                drawPaths(el, d.paths, { index: d.index, color: d.color })
-            else
-                drawRanges(el, ranges, { index: d.index, color: d.color })
-                drawPoints(el, points.concat(d.points), { index: d.index, color: d.color })
-
-
-        @setTimetick = (date) =>
-            @timetickDate = date;
-            drawTimetick()
-            
-
-        drawTimetick = () =>
-            @svg.selectAll('.timetick').remove()
-
-            if (Object.prototype.toString.call(@timetickDate) == '[object Date]')
-
-                r = @svg.selectAll('.timetick')
-                    .data([@timetickDate])
-                
-                r.enter().append('rect')
-                    .attr('class', 'timetick')
-                    .attr('x', (a)=>  @scales.x(a) )
-                    .attr('y', 0 )
-                    .attr('width', (a)=>  1 )
-                    .attr('height', (@options.height-20))
-                    .attr('stroke', 'red')
-                    .attr('stroke-width', 1)
-                    .attr('fill', (a) =>  options.color)
-
-                r.exit().remove()
-            
-
-        drawRanges = (element, data, options) =>
-
-            element.selectAll('rect').remove()
-
-            r = element.selectAll('rect')
-                .data(data)
-            
-            r.enter().append('rect')
-                .attr('x', (a)=>  @scales.x(new Date(a[0])) )
-                .attr('y', - (@options.ticksize + 3) * options.index + -(@options.ticksize-2) )
-                .attr('width', (a)=>  (@scales.x(new Date(a[1])) - @scales.x(new Date(a[0]))) )
-                .attr('height', (@options.ticksize-2))
-                .attr('stroke', d3.rgb(options.color).darker())
-                .attr('stroke-width', 1)
-                .attr('fill', (a) => 
-                    if(a[4]==false)
-                        "transparent"
-                    else
-                        options.color
-                )
-                .on("mouseover", (d) ->
-                    if (d[2])
-                        _this.tooltip.transition()        
-                            .duration(200)      
-                            .style("opacity", .9);      
-                        _this.tooltip.html(d[2])  
-                            .style("left", (d3.event.pageX) + "px")     
-                            .style("top", (d3.event.pageY - 28) + "px");    
-                    )                  
-                .on("mouseout", (d) ->
-                    _this.tooltip.transition()        
-                        .duration(500)      
-                        .style("opacity", 0);   
-                ).on('click', (d) ->
-                    _this.element.dispatchEvent(
-                        new CustomEvent('coverageselected', {
-                            detail: {
-                                bbox: d[3],
-                                start: d[0],
-                                end:d[1]
-                            }
-                            bubbles: true,
-                            cancelable: true
-                        })
-                    )
-                );
-
-            r.exit().remove()
-
-        drawPoints = (element, data, options) =>
-            element.selectAll('circle').remove()
-            p = element.selectAll('circle')
-               .data(data)
-
-            p.enter().append('circle')
-                .attr('cx', (a) => 
-                    if Array.isArray(a)
-                        return @scales.x(new Date(a[0])) 
-                    else
-                        return @scales.x(new Date(a))
-                    )
-                .attr('cy', - (@options.ticksize + 3) * options.index + -(@options.ticksize-2)/2)
-                .attr('fill', (a) => 
-                    if(a[4]==false)
-                        "transparent"
-                    else
-                        options.color
-                        
-                    )
-                .attr('stroke', d3.rgb(options.color).darker())
-                .attr('stroke-width', 1)
-                .attr('r', @options.ticksize/2)
-                .on("mouseover", (d) ->
-                    if (d[2])
-                        _this.tooltip.transition()        
-                            .duration(200)      
-                            .style("opacity", .9);      
-                        _this.tooltip.html(d[2])  
-                            .style("left", (d3.event.pageX) + "px")     
-                            .style("top", (d3.event.pageY - 28) + "px");    
-                    )                  
-                .on("mouseout", (d) ->
-                    _this.tooltip.transition()        
-                        .duration(500)      
-                        .style("opacity", 0);   
-                ).on('click', (d) ->
-                    _this.element.dispatchEvent(
-                        new CustomEvent('coverageselected', {
-                            detail: {
-                                bbox: d[3],
-                                start: d[0],
-                                end:d[1]
-                            }
-                            bubbles: true,
-                            cancelable: true
-                        })
-                    )
-                );
-
-            p.exit().remove()
-
-        drawPaths = (element, data, options) =>
-
-            @scales.y.domain(d3.extent(data, (d) => d[1]));
-
-            element.selectAll('path').remove()
-            element.selectAll('.y.axis').remove()
-
-
-            line = d3.svg.line()
-                .x( (a)=> @scales.x(new Date(a[0])))
-                .y( (a)=> @scales.y(a[1]))
-
-            # TODO: Tests with clipping mask for better readability
-            # element.attr("clip-path", "url(#clip)")
-
-            # clippath = element.append("defs").append("svg:clipPath")
-            #     .attr("id", "clip")
-
-            # element.select("#clip").append("svg:rect")
-            #         .attr("id", "clip-rect")
-            #         .attr("x", (options.index+1)*30)
-            #         .attr("y", -@options.height)
-            #         .attr("width", 100)
-            #         .attr("height", 100)
-
-            element.append("path")
-                #.attr("clip-path", "url(#clip)")
-                .datum(data)
-                .attr("class", "line")
-                .attr("d", line)
-                .attr('stroke', options.color)
-                .attr('stroke-width', "1.5px")
-                .attr('fill', 'none')
-                .attr('transform', "translate(0,"+ (-@options.height+29)+")")
-
-            
-            step = (@scales.y.domain()[1] - @scales.y.domain()[0])/4
-            @axis.y.tickValues(
-                d3.range(@scales.y.domain()[0],@scales.y.domain()[1]+step, step)
-            )
-
-            element.append("g")
-                .attr("class", "y axis")
-                .attr('fill', options.color)
-                .call(@axis.y)
-                .attr("transform", "translate("+((options.index+1)*30)+","+ (-@options.height+29)+")")
-                
-
-
-            element.selectAll('.axis .domain')
-                .attr("stroke-width", "1")
-                .attr("stroke", options.color)
-                .attr("shape-rendering", "crispEdges")
-                .attr("fill", "none");
-
-            element.selectAll('.axis line')
-                .attr("stroke-width", "1")
-                .attr("shape-rendering", "crispEdges")
-                .attr("stroke", options.color);
-
-            element.selectAll('.axis path')
-                .attr("stroke-width", "1")
-                .attr("shape-rendering", "crispEdges")
-                .attr("stroke", options.color);
-                
-                
-
-
-
-        @reloadDataset = (dataset) =>
-            callback = debounce(@options.debounce, dataset, =>
-                @data[dataset].callback(@scales.x.domain()[0], @scales.x.domain()[1], (id, data) =>
-                    el = @svg.select("g.datasets #dataset-#{id}")
-                    ranges = []
-                    points = []
-                    paths = []
-
-                    for element in data
-                        if(Array.isArray(element))
-                            if(element.length == 3)
-                                paths.push(element)
-                            else
-                                ranges.push(element)
-                        else
-                            if (!(element instanceof Date) && element.split("/").length>1)
-                                elements = element.split("/")
-                                elements.pop()
-                                ranges.push(elements)
-                            else
-                                points.push(element)
-
-                    @data[id].ranges = ranges
-                    @data[id].points = points
-                    @data[id].paths = paths
-                    @updateDataset(id)
-                , @bbox)
-            )
-            callback()
-
-
+        # initialize all datasets
         for dataset in @options.datasets
             do (dataset) => @drawDataset(dataset)
 
-        @redraw = =>
+        # handle window resizes
+        d3.select(window)
+            .on('resize', =>
+                # update the width of the element and the scales
+                svg = d3.select(@element).select('svg.timeslider')[0][0]
+                @options.width = if @useBBox then svg.getBBox().width else svg.clientWidth
+                @scales.x.range([0, @options.width])
 
-            # update brush
-            @brush.x(@scales.x).extent(@brush.extent())
+                @redraw()
+            )
 
-            # repaint the axis and the brush
-            d3.select(@element).select('g.mainaxis').call(@axis.x)
-            d3.select(@element).select('g.brush').call(@brush)
-
-            # repaint the datasets
-            # First paint lines and ticks
-            for dataset of @data
-                if !@data[dataset].lineplot
-                    @reloadDataset(dataset)
-                    @updateDataset(dataset)
-
-            # Afterwards paint lines so they are not overlapped
-            for dataset of @data
-                if @data[dataset].lineplot
-                    @reloadDataset(dataset)
-                    @updateDataset(dataset)
-
-            # repaint timetick
-            drawTimetick() 
-
-        # resizing (the window)
-        resize = =>
-            # update the width of the element and the scales
-            svg = d3.select(@element).select('svg.timeslider')[0][0]
-            @options.width = if @useBBox then svg.getBBox().width else svg.clientWidth
-            @scales.x.range([0, @options.width])
-
-            @redraw()
-
-        d3.select(window).on('resize', resize)
-
-        # zooming & dragging
-        zoom = =>
-            @redraw()
-
+        # create the zoom behavior
         @options.zoom = d3.behavior.zoom()
             .x(@scales.x)
             .size([@options.width, @options.height])
             .scaleExtent([1, Infinity])
-            .on('zoom', zoom)
+            .on('zoom', => @redraw())
         @svg.call(@options.zoom)
 
+        # show the initial time span
         if @options.display
             @center(@options.display.start, @options.display.end)
 
-    # Function pair to allow for easy hiding and showing the time slider
+    ###
+    ## Private API
+    ###
+
+    redraw: ->
+        # update brush
+        @brush.x(@scales.x).extent(@brush.extent())
+
+        # repaint the axis and the brush
+        d3.select(@element).select('g.mainaxis').call(@axis.x)
+        d3.select(@element).select('g.brush').call(@brush)
+
+        # repaint the datasets
+        # First paint lines and ticks
+        for dataset of @datasets
+            if !@datasets[dataset].lineplot
+                @reloadDataset(dataset)
+                @updateDataset(dataset)
+
+        # Afterwards paint lines so they are not overlapped
+        for dataset of @datasets
+            if @datasets[dataset].lineplot
+                @reloadDataset(dataset)
+                @updateDataset(dataset)
+
+        # repaint timetick
+        @drawTimetick() 
+
+    drawTimetick: ->
+        @svg.selectAll('.timetick').remove()
+
+
+
+        # TODO: @timetickDate seems to be set nowhere, so this is obviously never called???
+
+
+        if (Object.prototype.toString.call(@timetickDate) == '[object Date]')
+
+            r = @svg.selectAll('.timetick')
+                .data([@timetickDate])
+            
+            r.enter().append('rect')
+                .attr('class', 'timetick')
+                .attr('x', (a)=>  @scales.x(a) )
+                .attr('y', 0 )
+                .attr('width', (a)=>  1 )
+                .attr('height', (@options.height-20))
+                .attr('stroke', 'red')
+                .attr('stroke-width', 1)
+                .attr('fill', (a) =>  options.color)
+
+            r.exit().remove()
+        
+
+    drawRanges: (datasetElement, data, options) ->
+
+        datasetElement.selectAll('rect').remove()
+
+        r = datasetElement.selectAll('rect')
+            .data(data)
+        
+        r.enter().append('rect')
+            .attr('x', (a) => @scales.x(new Date(a[0])) )
+            .attr('y', - (@options.ticksize + 3) * options.index + -(@options.ticksize-2) )
+            .attr('width', (a) => (@scales.x(new Date(a[1])) - @scales.x(new Date(a[0]))) )
+            .attr('height', (@options.ticksize-2))
+            .attr('stroke', d3.rgb(options.color).darker())
+            .attr('stroke-width', 1)
+            .attr('fill', (a) =>
+                if @recordFilter(a)
+                    options.color
+                else
+                    "transparent"
+            )
+            .on("mouseover", (d) =>
+                if (d[2])
+                    @tooltip.transition()        
+                        .duration(200)      
+                        .style("opacity", .9);      
+                    @tooltip.html(d[2])  
+                        .style("left", (d3.event.pageX) + "px")     
+                        .style("top", (d3.event.pageY - 28) + "px");    
+            )                  
+            .on("mouseout", (d) =>
+                @tooltip.transition()        
+                    .duration(500)      
+                    .style("opacity", 0);   
+            )
+            .on('click', (d) =>
+                @element.dispatchEvent(
+                    new CustomEvent('coverageselected', {
+                        detail: {
+                            bbox: d[3],
+                            start: d[0],
+                            end:d[1]
+                        }
+                        bubbles: true,
+                        cancelable: true
+                    })
+                )
+            );
+
+        r.exit().remove()
+
+    drawPoints: (datasetElement, data, options) ->
+        datasetElement.selectAll('circle').remove()
+        p = datasetElement.selectAll('circle')
+           .data(data)
+
+        p.enter().append('circle')
+            .attr('cx', (a) => 
+                if Array.isArray(a)
+                    return @scales.x(new Date(a[0])) 
+                else
+                    return @scales.x(new Date(a))
+                )
+            .attr('cy', - (@options.ticksize + 3) * options.index + -(@options.ticksize-2)/2)
+            .attr('fill', (a) => 
+                if(a[4]==false)
+                    "transparent"
+                else
+                    options.color
+                    
+                )
+            .attr('stroke', d3.rgb(options.color).darker())
+            .attr('stroke-width', 1)
+            .attr('r', @options.ticksize/2)
+            .on("mouseover", (d) =>
+                if (d[2])
+                    @tooltip.transition()        
+                        .duration(200)      
+                        .style("opacity", .9);      
+                    @tooltip.html(d[2])  
+                        .style("left", (d3.event.pageX) + "px")     
+                        .style("top", (d3.event.pageY - 28) + "px");    
+                )                  
+            .on("mouseout", (d) =>
+                @tooltip.transition()        
+                    .duration(500)      
+                    .style("opacity", 0);   
+            ).on('click', (d) =>
+                @element.dispatchEvent(
+                    new CustomEvent('coverageselected', {
+                        detail: {
+                            bbox: d[3],
+                            start: d[0],
+                            end:d[1]
+                        }
+                        bubbles: true,
+                        cancelable: true
+                    })
+                )
+            );
+
+        p.exit().remove()
+
+    drawPaths: (datasetElement, data, options) ->
+        @scales.y.domain(d3.extent(data, (d) => d[1]));
+
+        datasetElement.selectAll('path').remove()
+        datasetElement.selectAll('.y.axis').remove()
+
+
+        line = d3.svg.line()
+            .x( (a) => @scales.x(new Date(a[0])) )
+            .y( (a) => @scales.y(a[1]) )
+
+        # TODO: Tests with clipping mask for better readability
+        # element.attr("clip-path", "url(#clip)")
+
+        # clippath = element.append("defs").append("svg:clipPath")
+        #     .attr("id", "clip")
+
+        # element.select("#clip").append("svg:rect")
+        #         .attr("id", "clip-rect")
+        #         .attr("x", (options.index+1)*30)
+        #         .attr("y", -@options.height)
+        #         .attr("width", 100)
+        #         .attr("height", 100)
+
+        datasetElement.append("path")
+            #.attr("clip-path", "url(#clip)")
+            .datum(data)
+            .attr("class", "line")
+            .attr("d", line)
+            .attr('stroke', options.color)
+            .attr('stroke-width', "1.5px")
+            .attr('fill', 'none')
+            .attr('transform', "translate(0,"+ (-@options.height+29)+")")
+
+        
+        step = (@scales.y.domain()[1] - @scales.y.domain()[0])/4
+        @axis.y.tickValues(
+            d3.range(@scales.y.domain()[0],@scales.y.domain()[1]+step, step)
+        )
+
+        datasetElement.append("g")
+            .attr("class", "y axis")
+            .attr('fill', options.color)
+            .call(@axis.y)
+            .attr("transform", "translate("+((options.index+1)*30)+","+ (-@options.height+29)+")")
+
+        datasetElement.selectAll('.axis .domain')
+            .attr("stroke-width", "1")
+            .attr("stroke", options.color)
+            .attr("shape-rendering", "crispEdges")
+            .attr("fill", "none");
+
+        datasetElement.selectAll('.axis line')
+            .attr("stroke-width", "1")
+            .attr("shape-rendering", "crispEdges")
+            .attr("stroke", options.color);
+
+        datasetElement.selectAll('.axis path')
+            .attr("stroke-width", "1")
+            .attr("shape-rendering", "crispEdges")
+            .attr("stroke", options.color);
+
+
+    # this function does *not* draw datasets, but instead initializes the 
+    # elements and triggers a reload
+
+    # TODO: rename
+    # TODO: figure out
+
+    drawDataset: (dataset) ->
+        @options.datasetIndex = 0 unless @options.datasetIndex?
+        @options.linegraphIndex = 0 unless @options.linegraphIndex?
+
+        index = @options.datasetIndex
+        lineplot = false
+
+        if !dataset.lineplot
+            index = @options.datasetIndex++
+            @svg.select('g.datasets')
+                .insert('g',':first-child')
+                    .attr('class', 'dataset')
+                    .attr('id', "dataset-#{dataset.id}")
+        else
+            index = @options.linegraphIndex++
+            lineplot = true
+            @svg.select('g.datasets')
+                .append('g')
+                    .attr('class', 'dataset')
+                    .attr('id', "dataset-#{dataset.id}")
+
+
+        @datasets[dataset.id] = {
+            index: index,
+            color: dataset.color,
+            callback: dataset.data,
+            points: [],
+            ranges: [],
+            lineplot: lineplot
+        }
+        
+        @reloadDataset(dataset.id)
+
+
+    # this function acually draws a dataset
+
+    updateDataset: (datasetId) ->
+        datasetElement = @svg.select("g.datasets #dataset-#{dataset}")
+        d = @datasets[datasetId]
+
+        points = d.ranges.filter((values) => (@scales.x(new Date(values[1])) - @scales.x(new Date(values[0]))) < 5)#.map((values) => values[0])
+        ranges = d.ranges.filter((values) => (@scales.x(new Date(values[1])) - @scales.x(new Date(values[0]))) >= 5)
+
+        if(d.paths && d.paths.length>0)
+            drawPaths(datasetElement, d.paths, { index: d.index, color: d.color })
+        else
+            drawRanges(datasetElement, ranges, { index: d.index, color: d.color })
+            drawPoints(datasetElement, points.concat(d.points), { index: d.index, color: d.color })
+
+    # this function triggers the reloading of a dataset (sync)
+
+    reloadDataset: (datasetId) ->
+        callback = debounce(@options.debounce, datasetId, =>
+            @datasets[datasetId].callback(@scales.x.domain()[0], @scales.x.domain()[1], (id, data) =>
+                el = @svg.select("g.datasets #dataset-#{id}")
+                ranges = []
+                points = []
+                paths = []
+
+                for element in data
+                    if(Array.isArray(element))
+                        if(element.length == 3)
+                            paths.push(element)
+                        else
+                            ranges.push(element)
+                    else
+                        if (!(element instanceof Date) && element.split("/").length>1)
+                            elements = element.split("/")
+                            elements.pop()
+                            ranges.push(elements)
+                        else
+                            points.push(element)
+
+                @datasets[id].ranges = ranges
+                @datasets[id].points = points
+                @datasets[id].paths = paths
+                @updateDataset(id)
+            , @bbox)
+        )
+        callback()
+
+    ###
+    ## Public API
+    ###
+
+    # convenience funtion to hide the TimeSlider
     hide: ->
-        @originalDisplay = @element.style.display
         @element.style.display = 'none'
         true
 
+    # convenience function to show a previously hidden TimeSlider
     show: ->
         @element.style.display = @originalDisplay
         true
 
+    # set a new domain of the TimeSlider. redraws.
     domain: (params...) ->
         # TODO: more thorough input checking
         return false unless params.length == 2
@@ -567,6 +581,7 @@ class TimeSlider
 
         true
 
+    # select the specified time span
     select: (params...) ->
         return false unless params.length == 2
 
@@ -577,7 +592,8 @@ class TimeSlider
         start = @options.start if start < @options.start
         end = @options.end if end > @options.end
 
-        d3.select(@element).select('g.brush').call(@brush.extent([start, end]))
+        d3.select(@element).select('g.brush')
+            .call(@brush.extent([start, end]))
         @element.dispatchEvent(new CustomEvent('selectionChanged', {
             detail: {
                 start: @brush.extent()[0],
@@ -588,16 +604,21 @@ class TimeSlider
         }))
         true
 
+    # add a dataset to the TimeSlider. redraws.
+    # the dataset definition shall have the following values:
+    #  * 
+    #
     addDataset: (dataset) ->
         @drawDataset(dataset)
         true
 
+    # remove a dataset. redraws.
     removeDataset: (id) ->
-        return false unless @data[id]?
+        return false unless @datasets[id]?
 
-        i = @data[id].index
-        lp = @data[id].lineplot
-        delete @data[id]
+        i = @datasets[id].index
+        lp = @datasets[id].lineplot
+        delete @datasets[id]
 
         if lp
             @options.linegraphIndex--
@@ -606,14 +627,14 @@ class TimeSlider
         
         d3.select(@element).select("g.dataset#dataset-#{id}").remove()
 
-        for dataset of @data
-            if lp == @data[dataset].lineplot
-                @data[dataset].index -= 1 if @data[dataset].index > i
+        for dataset of @datasets
+            if lp == @datasets[dataset].lineplot
+                @datasets[dataset].index -= 1 if @datasets[dataset].index > i
 
         @redraw()
         true
 
-    # TODO
+    # TODO redraws.
     center: (params...) ->
         start = new Date(params[0])
         end = new Date(params[1])
@@ -626,6 +647,7 @@ class TimeSlider
 
         true
 
+    # zoom to start/end. redraws.
     zoom: (params...) ->
         start = new Date(params[0])
         end = new Date(params[1])
@@ -646,20 +668,43 @@ class TimeSlider
 
         true
 
+    # reset the zoom to the initial domain
     reset: ->
         @zoom(@options.domain.start, @options.domain.end)
         true
 
-    updateBBox: (bbox, id) ->
-        return false unless @data[id]?
-        @bbox = bbox
-        #d3.select(@element).select("g.dataset#dataset-#{id}").remove()
-        @reloadDataset(id)
+    # enable or disable the brush tooltip
+    setBrushTooltip: (@brushTooltip) ->
 
+    # set the offset of the brush tooltip
+    setBrushTooltipOffset: (@brushTooltipOffset) ->
+
+    # sets a new record filter. This shall be a a callable that shall handle a
+    # single record. redraws.
+    setRecordFilter: (@recordFilter) ->
+        @redraw()
         true
 
 
-class TimeSlider.Plugin
 
-# Export the TimeSlider object for use in the browser
-this.TimeSlider = TimeSlider
+class Dataset
+    constructor: (@id, @color, @source, @sourceParams) ->
+
+    getSource: ->
+        @source
+
+    setSource: (@source) ->
+
+    sync: (start, end, callback) ->
+        @source.fetch start, end, @sourceParams, (records) =>
+            callback(records)
+
+
+# Interface for a source
+class Source
+    fetch: (start, end, params, callback) ->
+
+
+module.exports = TimeSlider
+
+
