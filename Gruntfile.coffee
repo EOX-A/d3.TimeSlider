@@ -1,13 +1,14 @@
 module.exports = (grunt) ->
   # load plugins
-  grunt.loadNpmTasks('grunt-contrib-watch');
-  grunt.loadNpmTasks('grunt-contrib-clean');
-  grunt.loadNpmTasks('grunt-contrib-coffee')
-  grunt.loadNpmTasks('grunt-contrib-compress');
-  grunt.loadNpmTasks('grunt-contrib-less');
-  grunt.loadNpmTasks('grunt-contrib-uglify');
-  grunt.loadNpmTasks('grunt-coffeelint');
-  grunt.loadNpmTasks('grunt-bump');
+  grunt.loadNpmTasks('grunt-contrib-watch')
+  grunt.loadNpmTasks('grunt-contrib-clean')
+  #grunt.loadNpmTasks('grunt-contrib-coffee')
+  grunt.loadNpmTasks('grunt-browserify')
+  grunt.loadNpmTasks('grunt-contrib-compress')
+  grunt.loadNpmTasks('grunt-contrib-less')
+  grunt.loadNpmTasks('grunt-contrib-uglify')
+  grunt.loadNpmTasks('grunt-coffeelint')
+  grunt.loadNpmTasks('grunt-bump')
 
   grunt.initConfig {
     pkg: grunt.file.readJSON('package.json'),
@@ -16,30 +17,42 @@ module.exports = (grunt) ->
         livereload: true
       coffee:
         files: [
+          'Gruntfile.coffee',
           'src/*.coffee',
           'src/plugins/*.coffee'
         ],
         tasks: [
-          'coffee',
-          'uglify'
+          'browserify',
+          #'uglify',
+          'less:development'
         ],
       less:
         files: 'src/*.less',
         tasks: 'less:development'
-    coffee:
-      compile:
-        options:
-          join: true,
-          sourceMap: true
+    browserify:
+      dist:
         files:
-          'build/d3.timeslider.js': 'src/*.coffee'
-          'build/d3.timeslider.plugins.js': 'src/plugins/*.coffee'
+          'build/d3.timeslider.js': 'src/main.coffee'
+        options:
+          transform: [['coffeeify', {
+            sourceMap: true
+          }]]
+    # coffee:
+    #   compile:
+    #     options:
+    #       join: true,
+    #       sourceMap: true
+    #     files:
+    #       'build/d3.timeslider.js': 'src/*.coffee'
+    #       'build/d3.timeslider.plugins.js': 'src/plugins/*.coffee'
     coffeelint:
       options:
         indentation:
           value: 4
         max_line_length:
           value: 120
+        no_backticks:
+          level: "ignore"
       app: 'src/*.coffee'
     uglify:
       options:
@@ -80,5 +93,6 @@ module.exports = (grunt) ->
   }
 
   grunt.registerTask('lint', ['coffeelint'])
-  grunt.registerTask('default', ['clean:build', 'coffee', 'uglify', 'less:development'])
+  grunt.registerTask('default', ['clean:build', 'browserify', #'uglify',
+    'less:development'])
   grunt.registerTask('release', ['clean:release', 'bump', 'coffee', 'uglify', 'less:production', 'compress:release'])
