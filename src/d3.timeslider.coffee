@@ -699,9 +699,15 @@ class Dataset
     getPaths: -> @paths
 
     sync: (start, end, callback) ->
-        if @source
+        # sources conforming to the Source interface
+        if @source and typeof @source.fetch == "function"
             @source.fetch start, end, @sourceParams, (records, paths) ->
                 callback(records, paths)
+        # sources that are functions
+        else if typeof @source == "function"
+            @source start, end, @sourceParams, (records, paths) ->
+                callback(records, paths)
+        # no source, simply call the callback with the static records and paths
         else
             callback(@records, @paths)
 
