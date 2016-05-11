@@ -15,7 +15,7 @@ class EOWCSSource
         # dates, so we strip this information
         date.toISOString().substring(0, 19) + "Z"
 
-    fetch: (start, end, params callback) ->
+    fetch: (start, end, params, callback) ->
         url = kvp.describeEOCoverageSetURL(
             @options.url, @params.eoid or @options.eoid, {
                 subsetTime: [

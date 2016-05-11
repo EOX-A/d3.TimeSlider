@@ -267,70 +267,73 @@ class TimeSlider
         for dataset of @datasets
             if !@datasets[dataset].lineplot
                 @reloadDataset(dataset)
-                @updateDataset(dataset)
+                @redrawDataset(dataset)
 
         # Afterwards paint lines so they are not overlapped
         for dataset of @datasets
             if @datasets[dataset].lineplot
                 @reloadDataset(dataset)
-                @updateDataset(dataset)
+                @redrawDataset(dataset)
 
         # repaint timetick
-        @drawTimetick()
+        # TODO: is this unneccessary
+        #@drawTimetick()
 
-    drawTimetick: ->
-        @svg.selectAll('.timetick').remove()
+    # TODO: this method seems quite unused
+    # drawTimetick: ->
+    #     @svg.selectAll('.timetick').remove()
 
-        # TODO: @timetickDate seems to be set nowhere, so this is obviously never called???
+    #     # TODO: @timetickDate seems to be set nowhere, so this is obviously never called???
 
 
-        if (Object.prototype.toString.call(@timetickDate) == '[object Date]')
+    #     if (Object.prototype.toString.call(@timetickDate) == '[object Date]')
 
-            r = @svg.selectAll('.timetick')
-                .data([@timetickDate])
+    #         r = @svg.selectAll('.timetick')
+    #             .data([@timetickDate])
             
-            r.enter().append('rect')
-                .attr('class', 'timetick')
-                .attr('x', (a) =>  @scales.x(a) )
-                .attr('y', 0 )
-                .attr('width', (a) ->  1 )
-                .attr('height', (@options.height-20))
-                .attr('stroke', 'red')
-                .attr('stroke-width', 1)
-                .attr('fill', (a) -> options.color)  # TODO: what color?
+    #         r.enter().append('rect')
+    #             .attr('class', 'timetick')
+    #             .attr('x', (a) =>  @scales.x(a) )
+    #             .attr('y', 0 )
+    #             .attr('width', (a) ->  1 )
+    #             .attr('height', (@options.height-20))
+    #             .attr('stroke', 'red')
+    #             .attr('stroke-width', 1)
+    #             .attr('fill', (a) -> options.color)  # TODO: what color?
 
-            r.exit().remove()
+    #         r.exit().remove()
 
 
     # Convenience method to hook up a single record elements events
-    setupRecord: (recordElement) ->
-        recordElement.attr('fill', (a) =>
-            if @recordFilter(a)
-                options.color
+    setupRecord: (recordElement, color) ->
+        recordElement.attr('fill', (record) =>
+            if not @recordFilter or @recordFilter(record)
+                color
             else
                 "transparent"
         )
-        .on("mouseover", (d) =>
-            if (d[2])
+        .on("mouseover", (record) =>
+            params = record[2]
+            if params and (params.id or params.name)
                 @tooltip.transition()
                     .duration(200)
                     .style("opacity", .9)
-                @tooltip.html(d[2])
+                @tooltip.html(params.id or params.name)
                     .style("left", (d3.event.pageX) + "px")
                     .style("top", (d3.event.pageY - 28) + "px")
         )
-        .on("mouseout", (d) =>
+        .on("mouseout", (record) =>
             @tooltip.transition()
                 .duration(500)
                 .style("opacity", 0)
         )
-        .on('click', (d) =>
+        .on('click', (record) =>
             @element.dispatchEvent(
                 new CustomEvent('recordClicked', {
                     detail: {
-                        bbox: d[3],
-                        start: d[0],
-                        end:d[1]
+                        start: record[0],
+                        end: record[1],
+                        params: record[2]
                     }
                     bubbles: true,
                     cancelable: true
@@ -338,27 +341,27 @@ class TimeSlider
             )
         )
 
-    drawRanges: (datasetElement, data, options) ->
+    drawRanges: (datasetElement, records, index, color) ->
         datasetElement.selectAll('rect').remove()
 
         r = datasetElement.selectAll('rect')
-            .data(data)
+            .data(records)
         
         r.enter().append('rect')
-            .attr('x', (a) => @scales.x(new Date(a[0])) )
-            .attr('y', - (@options.ticksize + 3) * options.index + -(@options.ticksize-2) )
-            .attr('width', (a) => (@scales.x(new Date(a[1])) - @scales.x(new Date(a[0]))) )
+            .attr('x', (record) => @scales.x(new Date(record[0])) )
+            .attr('y', - (@options.ticksize + 3) * index + -(@options.ticksize-2) )
+            .attr('width', (record) => @scales.x(new Date(record[1])) - @scales.x(new Date(record[0])) )
             .attr('height', (@options.ticksize-2))
-            .attr('stroke', d3.rgb(options.color).darker())
+            .attr('stroke', d3.rgb(color).darker())
             .attr('stroke-width', 1)
-            .call(@setupRecord)
+            .call((recordElement) => @setupRecord(recordElement, color))
 
         r.exit().remove()
 
-    drawPoints: (datasetElement, data, options) ->
+    drawPoints: (datasetElement, records, index, color) ->
         datasetElement.selectAll('circle').remove()
         p = datasetElement.selectAll('circle')
-            .data(data)
+            .data(records)
 
         p.enter().append('circle')
             .attr('cx', (a) =>
@@ -367,15 +370,15 @@ class TimeSlider
                 else
                     return @scales.x(new Date(a))
             )
-            .attr('cy', - (@options.ticksize + 3) * options.index + -(@options.ticksize-2)/2)
-            .attr('stroke', d3.rgb(options.color).darker())
+            .attr('cy', - (@options.ticksize + 3) * index - (@options.ticksize - 2) / 2)
+            .attr('stroke', d3.rgb(color).darker())
             .attr('stroke-width', 1)
-            .attr('r', @options.ticksize/2)
-            .call(@setupRecord)
+            .attr('r', @options.ticksize / 2)
+            .call((recordElement) => @setupRecord(recordElement, color))
 
         p.exit().remove()
 
-    drawPaths: (datasetElement, data, options) ->
+    drawPaths: (datasetElement, data, index, color) ->
         @scales.y.domain(d3.extent(data, (d) -> d[1]))
 
         datasetElement.selectAll('path').remove()
@@ -403,7 +406,7 @@ class TimeSlider
             .datum(data)
             .attr("class", "line")
             .attr("d", line)
-            .attr('stroke', options.color)
+            .attr('stroke', color)
             .attr('stroke-width', "1.5px")
             .attr('fill', 'none')
             .attr('transform', "translate(0,"+ (-@options.height+29)+")")
@@ -416,76 +419,98 @@ class TimeSlider
 
         datasetElement.append("g")
             .attr("class", "y axis")
-            .attr('fill', options.color)
+            .attr('fill', color)
             .call(@axis.y)
-            .attr("transform", "translate("+((options.index+1)*30)+","+ (-@options.height+29)+")")
+            .attr("transform", "translate("+((index+1)*30)+","+ (-@options.height+29)+")")
 
         datasetElement.selectAll('.axis .domain')
             .attr("stroke-width", "1")
-            .attr("stroke", options.color)
+            .attr("stroke", color)
             .attr("shape-rendering", "crispEdges")
             .attr("fill", "none")
 
         datasetElement.selectAll('.axis line')
             .attr("stroke-width", "1")
             .attr("shape-rendering", "crispEdges")
-            .attr("stroke", options.color)
+            .attr("stroke", color)
 
         datasetElement.selectAll('.axis path')
             .attr("stroke-width", "1")
             .attr("shape-rendering", "crispEdges")
-            .attr("stroke", options.color)
+            .attr("stroke", color)
 
     # this function acually draws a dataset
 
-    updateDataset: (datasetId) ->
+    redrawDataset: (datasetId) ->
         datasetElement = @svg.select("g.datasets #dataset-#{datasetId}")
-        d = @datasets[datasetId]
+        dataset = @datasets[datasetId]
 
-        points = d.ranges.filter((values) =>
-            (@scales.x(new Date(values[1])) - @scales.x(new Date(values[0]))) < 5
-        )
-        ranges = d.ranges.filter((values) =>
-            (@scales.x(new Date(values[1])) - @scales.x(new Date(values[0]))) >= 5
-        )
+        records = dataset.getRecords()
+        paths = dataset.getPaths()
+        index = dataset.index
+        color = dataset.color
 
-        if(d.paths && d.paths.length>0)
-            @drawPaths(datasetElement, d.paths, { index: d.index, color: d.color })
-        else
-            @drawRanges(datasetElement, ranges, { index: d.index, color: d.color })
-            @drawPoints(datasetElement, points.concat(d.points), { index: d.index, color: d.color })
+        if paths and paths.length
+            @drawPaths(datasetElement, paths, index, color)
+        else if records and records.length
+            points = dataset.getRecords().filter((record) =>
+                (@scales.x(new Date(record[1])) - @scales.x(new Date(record[0]))) < 5
+            )
+            ranges = dataset.getRecords().filter((record) =>
+                (@scales.x(new Date(record[1])) - @scales.x(new Date(record[0]))) >= 5
+            )
+            @drawRanges(datasetElement, ranges, index, color)
+            @drawPoints(datasetElement, points, index, color)
 
     # this function triggers the reloading of a dataset (sync)
 
     reloadDataset: (datasetId) ->
-        # callback = debounce(=>
-        #     @datasets[datasetId].callback(@scales.x.domain()[0], @scales.x.domain()[1], (id, data) =>
-        #         el = @svg.select("g.datasets #dataset-#{id}")
-        #         ranges = []
-        #         points = []
-        #         paths = []
+        dataset = @datasets[datasetId]
+        [ start, end ] = @scales.x.domain()
 
-        #         for element in data
-        #             if(Array.isArray(element))
-        #                 if(element.length == 3)
-        #                     paths.push(element)
-        #                 else
-        #                     ranges.push(element)
-        #             else
-        #                 if (!(element instanceof Date) && element.split("/").length>1)
-        #                     elements = element.split("/")
-        #                     elements.pop()
-        #                     ranges.push(elements)
-        #                 else
-        #                     points.push(element)
+        # start the dataset synchronization
+        dataset.syncDebounced(start, end, (records, paths) =>
+            finalRecords = []
+            finalPaths = []
 
-        #         @datasets[id].ranges = ranges
-        #         @datasets[id].points = points
-        #         @datasets[id].paths = paths
-        #         @updateDataset(id)
-        #     ), @options.debounce
-        # )
-        # callback()
+            for record in records
+
+                if record instanceof Date
+                    record = [ record, record ]
+
+                else if not (record[1] instanceof Date)
+                    record = [ record[0], record[0] ].concat(record[1..])
+
+                # TODO: implement other data conversions
+
+                finalRecords.push(record)
+
+                # if record[0] instanceof Date and record[1] instanceof Date
+                #     ranges.push(record)
+                # else
+                #     points.push(record)
+
+                # TODO: implement paths
+
+                # if Array.isArray(record)
+                #     if record.length == 3
+                #         paths.push(record)
+                #     else
+                #         ranges.push(record)
+                # else if record instanceof Date
+                #     points.push(record)
+
+                # # TODO: keep this?
+                # else if record.split("/").length > 1
+                #     elements = record.split("/")
+                #     elements.pop()
+                #     ranges.push(elements)
+
+            dataset.setRecords(finalRecords)
+            dataset.setPaths(finalPaths)
+            @redrawDataset(datasetId)
+        )
+
 
     ###
     ## Public API
@@ -552,38 +577,33 @@ class TimeSlider
         index = @options.datasetIndex
         lineplot = false
 
+        id = definition.id
+
         if !definition.lineplot
             index = @options.datasetIndex++
             @svg.select('g.datasets')
                 .insert('g',':first-child')
                     .attr('class', 'dataset')
-                    .attr('id', "dataset-#{definition.id}")
+                    .attr('id', "dataset-#{id}")
         else
             index = @options.linegraphIndex++
             lineplot = true
             @svg.select('g.datasets')
                 .append('g')
                     .attr('class', 'dataset')
-                    .attr('id', "dataset-#{definition.id}")
+                    .attr('id', "dataset-#{id}")
 
-
-
-
-        # TODO: implement
-
-
-
-        @datasets[definition.id] = new Dataset({
+        @datasets[id] = new Dataset({
             index: index,
             color: definition.color,
             source: definition.source,
-            points: [],
-            ranges: [],
-            lineplot: lineplot
+            records: definition.records,
+            lineplot: lineplot,
+            debounceTime: @options.debounce
         })
         
         
-        @reloadDataset(definition.id)
+        @reloadDataset(id)
 
     # remove a dataset. redraws.
     removeDataset: (id) ->
@@ -658,18 +678,33 @@ class TimeSlider
         @redraw()
         true
 
+
+# Dataset utility class for internal use only
 class Dataset
-    constructor: (@id, @color, @source, @sourceParams, debounceTime) ->
-        @syncDebounced = debounce(@sync, debounceTime)
+    constructor: (options) ->
+        { @color, @source, @sourceParams, @index, @records, @paths, @lineplot } = options
+        @syncDebounced = debounce(@sync, options.debounceTime)
 
     getSource: ->
         @source
 
     setSource: (@source) ->
 
+    setRecords: (@records) ->
+
+    getRecords: -> @records
+
+    setPaths: (@paths) ->
+
+    getPaths: -> @paths
+
     sync: (start, end, callback) ->
-        @source.fetch start, end, @sourceParams, (records) ->
-            callback(records)
+        if @source
+            @source.fetch start, end, @sourceParams, (records, paths) ->
+                callback(records, paths)
+        else
+            callback(@records, @paths)
+
 
 # Interface for a source
 class Source
