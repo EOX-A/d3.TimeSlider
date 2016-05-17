@@ -17,7 +17,7 @@ class EOWCSSource
 
     fetch: (start, end, params, callback) ->
         url = kvp.describeEOCoverageSetURL(
-            @options.url, @params.eoid or @options.eoid, {
+            @options.url, params?.eoid or @options.eoid, {
                 subsetTime: [
                     @formatDate(start), @formatDate(end)
                 ]
@@ -38,16 +38,22 @@ class EOWCSSource
             if response.coverageDescriptions? and response.coverageDescriptions.length > 0
                 for coverage in response.coverageDescriptions
                     bbox = [
-                        coverage.bounds.lower[0],
                         coverage.bounds.lower[1],
-                        coverage.bounds.upper[0],
-                        coverage.bounds.upper[1]
+                        coverage.bounds.lower[0],
+                        coverage.bounds.upper[1],
+                        coverage.bounds.upper[0]
                     ]
+                    footprint = []
+                    for i in [0...coverage.footprint.length] by 2
+                        footprint.push(
+                            [coverage.footprint[i+1], coverage.footprint[i]]
+                        )
                     records.push([
                         new Date(coverage.timePeriod[0]),
                         new Date(coverage.timePeriod[1]), {
-                            title: coverage.coverageId,
-                            bbox: bbox
+                            id: coverage.coverageId,
+                            bbox: bbox,
+                            footprint: footprint
                         }
                     ])
 
