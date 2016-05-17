@@ -21,6 +21,7 @@
       "url": "https://github.com/EOX-A/d3.TimeSlider/blob/master/License"
     }
   ],
+  "main": "d3.timeslider.coffee",
   "devDependencies": {
     "bootstrap": "^3.3.6",
     "coffeeify": "^2.0.1",
@@ -37,6 +38,7 @@
   },
   "dependencies": {
     "d3": "^3.5.17",
-    "debounce": "^1.0.0"
+    "debounce": "^1.0.0",
+    "libcoverage": "^0.1.8"
   }
 }
