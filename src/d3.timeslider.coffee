@@ -73,6 +73,8 @@ class TimeSlider
         @options.ticksize ||= 3
         @options.datasets ||= []
 
+        @recordFilter = @options.recordFilter
+
         # object to hold individual data points / data ranges
         @datasets = {}
 
@@ -305,15 +307,28 @@ class TimeSlider
 
 
     # Convenience method to hook up a single record elements events
-    setupRecord: (recordElement, color) ->
+    setupRecord: (recordElement, dataset) ->
         recordElement.attr('fill', (record) =>
-            if not @recordFilter or @recordFilter(record)
-                color
+            if not @recordFilter or @recordFilter(record, dataset)
+                dataset.color
             else
                 "transparent"
         )
         .on("mouseover", (record) =>
             params = record[2]
+            @element.dispatchEvent(
+                new CustomEvent('recordMouseover', {
+                    detail: {
+                        dataset: dataset.id,
+                        start: record[0],
+                        end: record[1],
+                        params: params
+                    }
+                    bubbles: true,
+                    cancelable: true
+                })
+            )
+
             if params and (params.id or params.name)
                 @tooltip.transition()
                     .duration(200)
@@ -323,6 +338,18 @@ class TimeSlider
                     .style("top", (d3.event.pageY - 28) + "px")
         )
         .on("mouseout", (record) =>
+            @element.dispatchEvent(
+                new CustomEvent('recordMouseout', {
+                    detail: {
+                        dataset: dataset.id,
+                        start: record[0],
+                        end: record[1],
+                        params: record[2]
+                    }
+                    bubbles: true,
+                    cancelable: true
+                })
+            )
             @tooltip.transition()
                 .duration(500)
                 .style("opacity", 0)
@@ -331,6 +358,7 @@ class TimeSlider
             @element.dispatchEvent(
                 new CustomEvent('recordClicked', {
                     detail: {
+                        dataset: dataset.id,
                         start: record[0],
                         end: record[1],
                         params: record[2]
@@ -341,7 +369,7 @@ class TimeSlider
             )
         )
 
-    drawRanges: (datasetElement, records, index, color) ->
+    drawRanges: (datasetElement, dataset, records) ->
         datasetElement.selectAll('rect').remove()
 
         r = datasetElement.selectAll('rect')
@@ -349,16 +377,16 @@ class TimeSlider
         
         r.enter().append('rect')
             .attr('x', (record) => @scales.x(new Date(record[0])) )
-            .attr('y', - (@options.ticksize + 3) * index + -(@options.ticksize-2) )
+            .attr('y', - (@options.ticksize + 3) * dataset.index + -(@options.ticksize-2) )
             .attr('width', (record) => @scales.x(new Date(record[1])) - @scales.x(new Date(record[0])) )
             .attr('height', (@options.ticksize-2))
-            .attr('stroke', d3.rgb(color).darker())
+            .attr('stroke', d3.rgb(dataset.color).darker())
             .attr('stroke-width', 1)
-            .call((recordElement) => @setupRecord(recordElement, color))
+            .call((recordElement) => @setupRecord(recordElement, dataset))
 
         r.exit().remove()
 
-    drawPoints: (datasetElement, records, index, color) ->
+    drawPoints: (datasetElement, dataset, records) ->
         datasetElement.selectAll('circle').remove()
         p = datasetElement.selectAll('circle')
             .data(records)
@@ -370,15 +398,15 @@ class TimeSlider
                 else
                     return @scales.x(new Date(a))
             )
-            .attr('cy', - (@options.ticksize + 3) * index - (@options.ticksize - 2) / 2)
-            .attr('stroke', d3.rgb(color).darker())
+            .attr('cy', - (@options.ticksize + 3) * dataset.index - (@options.ticksize - 2) / 2)
+            .attr('stroke', d3.rgb(dataset.color).darker())
             .attr('stroke-width', 1)
             .attr('r', @options.ticksize / 2)
-            .call((recordElement) => @setupRecord(recordElement, color))
+            .call((recordElement) => @setupRecord(recordElement, dataset))
 
         p.exit().remove()
 
-    drawPaths: (datasetElement, data, index, color) ->
+    drawPaths: (datasetElement, dataset, data) ->
         @scales.y.domain(d3.extent(data, (d) -> d[1]))
 
         datasetElement.selectAll('path').remove()
@@ -419,25 +447,25 @@ class TimeSlider
 
         datasetElement.append("g")
             .attr("class", "y axis")
-            .attr('fill', color)
+            .attr('fill', dataset.color)
             .call(@axis.y)
-            .attr("transform", "translate("+((index+1)*30)+","+ (-@options.height+29)+")")
+            .attr("transform", "translate("+((dataset.index+1)*30)+","+ (-@options.height+29)+")")
 
         datasetElement.selectAll('.axis .domain')
             .attr("stroke-width", "1")
-            .attr("stroke", color)
+            .attr("stroke", dataset.color)
             .attr("shape-rendering", "crispEdges")
             .attr("fill", "none")
 
         datasetElement.selectAll('.axis line')
             .attr("stroke-width", "1")
             .attr("shape-rendering", "crispEdges")
-            .attr("stroke", color)
+            .attr("stroke", dataset.color)
 
         datasetElement.selectAll('.axis path')
             .attr("stroke-width", "1")
             .attr("shape-rendering", "crispEdges")
-            .attr("stroke", color)
+            .attr("stroke", dataset.color)
 
     # this function acually draws a dataset
 
@@ -451,7 +479,7 @@ class TimeSlider
         color = dataset.color
 
         if paths and paths.length
-            @drawPaths(datasetElement, paths, index, color)
+            @drawPaths(datasetElement, dataset, paths)
         else if records and records.length
             points = dataset.getRecords().filter((record) =>
                 (@scales.x(new Date(record[1])) - @scales.x(new Date(record[0]))) < 5
@@ -459,8 +487,8 @@ class TimeSlider
             ranges = dataset.getRecords().filter((record) =>
                 (@scales.x(new Date(record[1])) - @scales.x(new Date(record[0]))) >= 5
             )
-            @drawRanges(datasetElement, ranges, index, color)
-            @drawPoints(datasetElement, points, index, color)
+            @drawRanges(datasetElement, dataset, ranges)
+            @drawPoints(datasetElement, dataset, points)
 
     # this function triggers the reloading of a dataset (sync)
 
@@ -594,6 +622,7 @@ class TimeSlider
                     .attr('id', "dataset-#{id}")
 
         @datasets[id] = new Dataset({
+            id: id,
             index: index,
             color: definition.color,
             source: definition.source,
@@ -626,6 +655,9 @@ class TimeSlider
 
         @redraw()
         true
+
+    hasDataset: (id) ->
+        return false unless @datasets[id]?
 
     # TODO redraws.
     center: (params...) ->
@@ -682,7 +714,7 @@ class TimeSlider
 # Dataset utility class for internal use only
 class Dataset
     constructor: (options) ->
-        { @color, @source, @sourceParams, @index, @records, @paths, @lineplot } = options
+        { @id,  @color, @source, @sourceParams, @index, @records, @paths, @lineplot } = options
         @syncDebounced = debounce(@sync, options.debounceTime)
 
     getSource: ->
