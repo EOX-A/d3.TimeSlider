@@ -132,6 +132,21 @@ window.addEventListener('load', function() {
 						[ new Date("2012-01-06T12:00:00Z"), new Date("2012-01-06T16:00:00Z") ],
 					]);
 				}}
+			},
+			// testing the record filter:
+			{
+				id: 'img2013-4',
+				color: 'magenta',
+				records: null,
+				source: { fetch: function(start, end, params, callback) {
+					callback([
+						[ new Date("2012-01-01T12:00:00Z"), new Date("2012-01-01T16:00:00Z"), {visible: false} ],
+						[ new Date("2012-01-02T12:00:00Z"), {visible: false}],
+						[ new Date("2012-01-03T12:00:00Z"), {visible: false}],
+						[ new Date("2012-01-05T00:00:00Z"), new Date("2012-01-06T00:00:00Z"), {visible: false}],
+						[ new Date("2012-01-06T12:00:00Z"), new Date("2012-01-06T16:00:00Z"), {visible: false} ],
+					]);
+				}}
 			}/*,
 			
 			{
@@ -163,7 +178,15 @@ window.addEventListener('load', function() {
 				color: 'purple',
 				data: new TimeSlider.Plugin.WPS({ url: 'http://demo.v-manip.eox.at/browse/ows', eoid: 'SPOT4_View', dataset: 'spot4' })
 			}*/
-		]
+		],
+
+		recordFilter: function(record, dataset) {
+			var params = record[2];
+			if (params && params.hasOwnProperty("visible")) {
+				return params.visible;
+			}
+			return true;
+		}
 	});
 	//slider.updateBBox([5,44,9,47], "spot4");
 	// Register a callback for changing the selected time period
