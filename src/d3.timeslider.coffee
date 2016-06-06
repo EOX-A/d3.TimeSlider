@@ -52,7 +52,7 @@ class TimeSlider
 
         @useBBox = false
         if @svg[0][0].clientWidth == 0
-            d3.select(element).select('svg')
+            d3.select(@element).select('svg')
                 .append('rect').attr('width', '100%')
                 .attr('height', '100%')
                 .attr('opacity', '0')
