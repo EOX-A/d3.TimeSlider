@@ -37,17 +37,16 @@ class EOWCSSource
             records = []
             if response.coverageDescriptions? and response.coverageDescriptions.length > 0
                 for coverage in response.coverageDescriptions
-                    bbox = [
-                        coverage.bounds.lower[1],
-                        coverage.bounds.lower[0],
-                        coverage.bounds.upper[1],
-                        coverage.bounds.upper[0]
-                    ]
+                    bbox = [NaN, NaN, NaN, NaN]
                     footprint = []
                     for i in [0...coverage.footprint.length] by 2
-                        footprint.push(
-                            [coverage.footprint[i+1], coverage.footprint[i]]
-                        )
+                        [lon, lat] = [coverage.footprint[i+1], coverage.footprint[i]]
+                        footprint.push([lon, lat])
+                        bbox[0] = if isNaN(bbox[0]) then lon  else Math.min(lon, bbox[0])
+                        bbox[1] = if isNaN(bbox[1]) then lat  else Math.min(lat, bbox[1])
+                        bbox[2] = if isNaN(bbox[2]) then lon  else Math.max(lon, bbox[2])
+                        bbox[3] = if isNaN(bbox[3]) then lat  else Math.max(lat, bbox[3])
+
                     records.push([
                         new Date(coverage.timePeriod[0]),
                         new Date(coverage.timePeriod[1]), {
