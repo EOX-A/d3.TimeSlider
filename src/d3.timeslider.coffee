@@ -385,6 +385,7 @@ class TimeSlider
                     @element.dispatchEvent(
                         new CustomEvent('coverageselected', {
                             detail: {
+                                id: d[2],
                                 bbox: d[3],
                                 start: d[0],
                                 end:d[1]
@@ -444,6 +445,7 @@ class TimeSlider
                     @element.dispatchEvent(
                         new CustomEvent('coverageselected', {
                             detail: {
+                                id: d[2],
                                 bbox: d[3],
                                 start: d[0],
                                 end:d[1]
