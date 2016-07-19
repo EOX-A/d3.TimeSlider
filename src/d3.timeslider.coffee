@@ -24,19 +24,28 @@ class TimeSlider
     constructor: (@element, @options = {}) ->
         # Debugging?
         @debug = false
-        @brush_tooltip = false
-        @brush_tooltip_offset = [30,20];
 
-        @tooltip = d3.select("body").append("div")   
-            .attr("class", "tooltip")               
-            .style("opacity", 0);
+        @brush_tooltip = true
+        @brush_tooltip_offset = [-30, 20]
 
-        @tooltip_brush_min = d3.select("body").append("div")   
-            .attr("class", "tooltip")               
-            .style("opacity", 0);
-        @tooltip_brush_max = d3.select("body").append("div")   
-            .attr("class", "tooltip")               
-            .style("opacity", 0);
+        @time_tooltip = true
+        @time_tooltip_is_on = true
+        @time_tooltip_offset = [-30, -35]
+
+        @tooltip = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0)
+
+        @tooltip_time = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0)
+
+        @tooltip_brush_min = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0)
+        @tooltip_brush_max = d3.select("body").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0)
 
         #localStorage.clear()
 
@@ -45,7 +54,7 @@ class TimeSlider
         # create the root svg element
         @svg = d3.select(element).append('svg').attr('class', 'timeslider')
 
-        @useBBox = false;
+        @useBBox = false
         if(@svg[0][0].clientWidth == 0)
             d3.select(element).select('svg').append('rect').attr('width', '100%').attr('height', '100%').attr('opacity', '0')
             @useBBox = true
@@ -54,17 +63,26 @@ class TimeSlider
         @options.width = if @useBBox then @svg[0][0].getBBox().width else @options.width  = @svg[0][0].clientWidth
         @options.height = if @useBBox then @svg[0][0].getBBox().height else @svg[0][0].clientHeight
         @options.brush ||= {}
-        @options.brush.start || = @options.start
+        @options.brush.start ||= @options.start
         @options.brush.end ||= new Date(new Date(@options.brush.start).setDate(@options.brush.start.getDate() + 3))
         @options.debounce ||= 50
         @options.ticksize ||= 3
         @options.selectionLimit ||= -1
+        @options.timeFormatStr ||= "%Y-%m-%d %H:%M:%S" # defaut time format used by the tooltips
+        @options.timeTickDate ||= null
+        @options.minBrushSize ||= 1.0 # minimum pixel size of the brush
+
+        @brush_tooltip = @options.brushTooltip if @options.brushTooltip?
+        @brush_tooltip_offset = @options.brushTooltipOffset if @options.brushTooltipOffset?
+
+        @time_tooltip = @options.timeTooltip if @options.timeTooltip?
+        @time_tooltip_offset = @options.timeTooltipOffset if @options.timeTooltipOffset?
 
         # array to hold individual data points / data ranges
         @data = {}
 
-        @timetickDate = false;
-        @simplifyDate = d3.time.format.utc("%d.%m.%Y - %H:%M:%S")
+        @timeTickDate = @options.timeTickDate
+        @timeFormat = d3.time.format.utc(@options.timeFormatStr)
 
         # debounce function for rate limiting
         @timeouts = []
@@ -78,13 +96,13 @@ class TimeSlider
 
 
         customFormats = d3.time.format.utc.multi([
-            [".%L", (d) -> d.getUTCMilliseconds() ]
-            [":%S", (d) -> d.getUTCSeconds() ],
+            ["%S.%L", (d) -> d.getUTCMilliseconds() ]
+            ["%M:%S", (d) -> d.getUTCSeconds() ],
             ["%H:%M", (d) -> d.getUTCMinutes() ],
             ["%H:%M", (d) -> d.getUTCHours() ],
-            ["%b %d %Y ", (d) ->d.getUTCDay() && d.getUTCDate() != 1 ],
-            ["%b %d %Y", (d) -> d.getUTCDate() != 1 ],
-            ["%B %Y", (d) -> d.getUTCMonth() ],
+            ["%b %d", (d) ->d.getUTCDay() && d.getUTCDate() != 1 ],
+            ["%b %d", (d) -> d.getUTCDate() != 1 ],
+            ["%b", (d) -> d.getUTCMonth() ],
             ["%Y", -> true ]
         ])
 
@@ -115,17 +133,29 @@ class TimeSlider
         d3.select(@element).select('g.mainaxis .domain')
             .attr('transform', "translate(0, #{options.height - 18})")
 
-        @setBrushTooltip = (active) =>
-            @brush_tooltip = active
-
-        @setBrushTooltipOffset = (offset) =>
-            @brush_tooltip_offset = offset
-
 
         # brush
+        @brushExtent = [@options.brush.start, @options.brush.end]
+
+        @redrawBrush = (extent)->
+            @brushExtent = extent if extent?
+            # make sure the selection does not disapper when we zoom out
+            extent = @brushExtent
+            pixext = [@scales.x(extent[0]), @scales.x(extent[1])]
+            size = @options.minBrushSize
+            if (pixext[1] - pixext[0]) < size
+                mean = 0.5 * (pixext[1] + pixext[0])
+                extent = [
+                    @scales.x.invert(mean - 0.5 * size),
+                    @scales.x.invert(mean + 0.5 * size)
+                ]
+            @brush.x(@scales.x).extent(extent)
+            d3.select(@element).select('g.brush').call(@brush)
+
         @brush = d3.svg.brush()
             .x(@scales.x)
             .on('brushstart', =>
+                @time_tooltip_is_on = false
                 @options.lastZoom = {
                     scale: @options.zoom.scale(),
                     translate: [
@@ -137,27 +167,30 @@ class TimeSlider
                 @options.zoom.on('zoom', null)
             )
             .on('brushend', =>
+                @time_tooltip_is_on = true
                 @options.zoom
                     .scale(@options.lastZoom.scale)
                     .translate(@options.lastZoom.translate)
-                    .on('zoom', zoom)
+                    .on('zoom', @redraw)
+
+                extent = @brush.extent()
 
                 # Check for selection limit and reduce to correct size
                 if(@options.selectionLimit > 0)
                     @svg.selectAll('.brush')
                         .attr({fill: "#333"})
-                    s = @brush.extent()
-                    if ((s[1]-s[0])/1000 >= @options.selectionLimit)
-                        tmpdate = new Date(@brush.extent()[0].getTime()+@options.selectionLimit*1000)
-                        @brush.extent([@brush.extent()[0],tmpdate])
+                    if (extent[1] - extent[0])/1000 >= @options.selectionLimit
+                        extent = [extent[0], new Date(
+                            extent[0].getTime() + @options.selectionLimit*1000
+                        )]
+                        @brush.extent(extent)
                         d3.select(@element).select('g.brush').call(@brush)
+
+                @brushExtent = extent
 
                 @element.dispatchEvent(
                     new CustomEvent('selectionChanged', {
-                        detail: {
-                            start: @brush.extent()[0],
-                            end: @brush.extent()[1]
-                        }
+                        detail: {start: extent[0], end: extent[1]}
                         bubbles: true,
                         cancelable: true
                     })
@@ -166,53 +199,57 @@ class TimeSlider
                 if (@brush_tooltip)
                     @tooltip_brush_min.transition()
                         .duration(100)
-                        .style("opacity", 0);
+                        .style("opacity", 0)
 
                     @tooltip_brush_max.transition()
                         .duration(100)
-                        .style("opacity", 0);
+                        .style("opacity", 0)
 
             )
             .on('brush', =>
+                @options.zoom
+                    .scale(@options.lastZoom.scale)
+                    .translate(@options.lastZoom.translate)
+                extent = @brush.extent()
+
                 # Check for selection limit, warn in red if selection is to big
-                if(@options.selectionLimit > 0)
-                    s = @brush.extent()
-                    if ((s[1]-s[0])/1000 > @options.selectionLimit)
+                if @options.selectionLimit > 0
+                    if (extent[1] - extent[0])/1000 > @options.selectionLimit
                         @svg.selectAll('.brush')
                             .attr({fill: "red"})
-                            
                     else
                         @svg.selectAll('.brush')
+                            .attr('class', 'brush brush-ok')
                             .attr({fill: "#333"})
 
-                if (@brush_tooltip)
+                if @brush_tooltip
                     offheight = 0
-                    if @svg[0][0].parentElement?
-                        offheight = @svg[0][0].parentElement.offsetHeight
+                    node = @svg[0][0]
+
+                    if node.parentElement?
+                        height = node.parentElement.offsetHeight
                     else
-                        offheight = @svg[0][0].parentNode.offsetHeight
-                    @options.zoom
-                        .scale(@options.lastZoom.scale)
-                        .translate(@options.lastZoom.translate)
-                       
+                        height = node.parentNode.offsetHeight
+
+                    node_offset = node.getBoundingClientRect()
+                    offset_x = @brush_tooltip_offset[0] + node_offset.left
+                    offset_y = @brush_tooltip_offset[1] + node_offset.top
+
                     @tooltip_brush_min.transition()
                         .duration(100)
-                        .style("opacity", .9);
-                    #console.log("Label time: "+@brush.extent())
-                    @tooltip_brush_min.html(@simplifyDate(@brush.extent()[0]))
-                        .style("left", (@scales.x(@brush.extent()[0])+@brush_tooltip_offset[0]) + "px")
-                        .style("top", (offheight + @brush_tooltip_offset[1]) + "px");
-
+                        .style("opacity", .9)
+                    @tooltip_brush_min.html(@timeFormat(extent[0]))
+                        .style("left", (@scales.x(extent[0]) + offset_x) + "px")
+                        .style("top", offset_y + "px")
 
                     @tooltip_brush_max.transition()
                         .duration(100)
-                        .style("opacity", .9);
-                    @tooltip_brush_max.html(@simplifyDate(@brush.extent()[1]))
-                        .style("left", (@scales.x(@brush.extent()[1])+@brush_tooltip_offset[0]) + "px")
-                        .style("top", (offheight + @brush_tooltip_offset[1] + 20) + "px");
+                        .style("opacity", .9)
+                    @tooltip_brush_max.html(@timeFormat(extent[1]))
+                        .style("left", (@scales.x(extent[1]) + offset_x) + "px")
+                        .style("top", (offset_y + 20) + "px")
 
             )
-            .extent([@options.brush.start, @options.brush.end])
 
         @svg.append('g')
             .attr('class', 'brush')
@@ -229,7 +266,7 @@ class TimeSlider
             .attr('transform', "translate(0, #{options.height - 23})")
 
         @drawDataset = (dataset) =>
-            
+
             @options.datasetIndex = 0 unless @options.datasetIndex?
             @options.linegraphIndex = 0 unless @options.linegraphIndex?
 
@@ -259,7 +296,7 @@ class TimeSlider
                 ranges: [],
                 lineplot: lineplot
             }
-            
+
             @reloadDataset(dataset.id)
 
         @updateDataset = (dataset) =>
@@ -278,18 +315,18 @@ class TimeSlider
 
 
         @setTimetick = (date) =>
-            @timetickDate = date;
+            @timeTickDate = date
             drawTimetick()
-            
+
 
         drawTimetick = () =>
             @svg.selectAll('.timetick').remove()
 
-            if (Object.prototype.toString.call(@timetickDate) == '[object Date]')
+            if (Object.prototype.toString.call(@timeTickDate) == '[object Date]')
 
                 r = @svg.selectAll('.timetick')
-                    .data([@timetickDate])
-                
+                    .data([@timeTickDate])
+
                 r.enter().append('rect')
                     .attr('class', 'timetick')
                     .attr('x', (a)=>  @scales.x(a) )
@@ -301,7 +338,7 @@ class TimeSlider
                     .attr('fill', (a) =>  options.color)
 
                 r.exit().remove()
-            
+
 
         drawRanges = (element, data, options) =>
 
@@ -309,35 +346,43 @@ class TimeSlider
 
             r = element.selectAll('rect')
                 .data(data)
-            
+
             r.enter().append('rect')
-                .attr('x', (a)=>  @scales.x(new Date(a[0])) )
+                .attr('x', (a) =>  @scales.x(new Date(a[0])) )
                 .attr('y', - (@options.ticksize + 3) * options.index + -(@options.ticksize-2) )
-                .attr('width', (a)=>  (@scales.x(new Date(a[1])) - @scales.x(new Date(a[0]))) )
+                .attr('width', (a) =>  (@scales.x(new Date(a[1])) - @scales.x(new Date(a[0]))) )
                 .attr('height', (@options.ticksize-2))
                 .attr('stroke', d3.rgb(options.color).darker())
                 .attr('stroke-width', 1)
-                .attr('fill', (a) => 
+                .attr('fill', (a) =>
                     if(a[4]==false)
                         "transparent"
                     else
                         options.color
                 )
-                .on("mouseover", (d) ->
+                .on("mouseover", (d) =>
                     if (d[2])
-                        _this.tooltip.transition()        
-                            .duration(200)      
-                            .style("opacity", .9);      
-                        _this.tooltip.html(d[2])  
-                            .style("left", (d3.event.pageX) + "px")     
-                            .style("top", (d3.event.pageY - 28) + "px");    
-                    )                  
-                .on("mouseout", (d) ->
-                    _this.tooltip.transition()        
-                        .duration(500)      
-                        .style("opacity", 0);   
-                ).on('click', (d) ->
-                    _this.element.dispatchEvent(
+                        @time_tooltip_is_on = false
+                        @tooltip.transition()
+                            .duration(100)
+                            .style("opacity", .9)
+                        @tooltip.html(d[2])
+                            .style("left", (d3.event.pageX) + "px")
+                            .style("top", (d3.event.pageY - 28) + "px")
+                )
+                .on("mousemove", (d) =>
+                    @tooltip
+                        .style("left", (d3.event.pageX) + "px")
+                        .style("top", (d3.event.pageY - 28) + "px")
+                )
+                .on("mouseout", (d) =>
+                    @time_tooltip_is_on = true
+                    @tooltip.transition()
+                        .duration(100)
+                        .style("opacity", 0)
+                )
+                .on('click', (d) =>
+                    @element.dispatchEvent(
                         new CustomEvent('coverageselected', {
                             detail: {
                                 bbox: d[3],
@@ -348,7 +393,7 @@ class TimeSlider
                             cancelable: true
                         })
                     )
-                );
+                )
 
             r.exit().remove()
 
@@ -358,38 +403,45 @@ class TimeSlider
                .data(data)
 
             p.enter().append('circle')
-                .attr('cx', (a) => 
+                .attr('cx', (a) =>
                     if Array.isArray(a)
-                        return @scales.x(new Date(a[0])) 
+                        return @scales.x(new Date(a[0]))
                     else
                         return @scales.x(new Date(a))
                     )
                 .attr('cy', - (@options.ticksize + 3) * options.index + -(@options.ticksize-2)/2)
-                .attr('fill', (a) => 
+                .attr('fill', (a) =>
                     if(a[4]==false)
                         "transparent"
                     else
                         options.color
-                        
+
                     )
                 .attr('stroke', d3.rgb(options.color).darker())
                 .attr('stroke-width', 1)
                 .attr('r', @options.ticksize/2)
-                .on("mouseover", (d) ->
+                .on("mouseover", (d) =>
                     if (d[2])
-                        _this.tooltip.transition()        
-                            .duration(200)      
-                            .style("opacity", .9);      
-                        _this.tooltip.html(d[2])  
-                            .style("left", (d3.event.pageX) + "px")     
-                            .style("top", (d3.event.pageY - 28) + "px");    
-                    )                  
-                .on("mouseout", (d) ->
-                    _this.tooltip.transition()        
-                        .duration(500)      
-                        .style("opacity", 0);   
-                ).on('click', (d) ->
-                    _this.element.dispatchEvent(
+                        @time_tooltip_is_on = false
+                        @tooltip.transition()
+                            .duration(100)
+                            .style("opacity", .9)
+                        @tooltip.html(d[2])
+                            .style("left", (d3.event.pageX) + "px")
+                            .style("top", (d3.event.pageY - 28) + "px")
+                )
+                .on("mousemove", (d) =>
+                    @tooltip
+                        .style("left", (d3.event.pageX) + "px")
+                        .style("top", (d3.event.pageY - 28) + "px")
+                )
+                .on("mouseout", (d) =>
+                    @time_tooltip_is_on = true
+                    @tooltip.transition()
+                        .duration(100)
+                        .style("opacity", 0)
+                ).on('click', (d) =>
+                    @element.dispatchEvent(
                         new CustomEvent('coverageselected', {
                             detail: {
                                 bbox: d[3],
@@ -400,13 +452,13 @@ class TimeSlider
                             cancelable: true
                         })
                     )
-                );
+                )
 
             p.exit().remove()
 
         drawPaths = (element, data, options) =>
 
-            @scales.y.domain(d3.extent(data, (d) => d[1]));
+            @scales.y.domain(d3.extent(data, (d) => d[1]))
 
             element.selectAll('path').remove()
             element.selectAll('.y.axis').remove()
@@ -439,7 +491,7 @@ class TimeSlider
                 .attr('fill', 'none')
                 .attr('transform', "translate(0,"+ (-@options.height+29)+")")
 
-            
+
             step = (@scales.y.domain()[1] - @scales.y.domain()[0])/4
             @axis.y.tickValues(
                 d3.range(@scales.y.domain()[0],@scales.y.domain()[1]+step, step)
@@ -450,26 +502,26 @@ class TimeSlider
                 .attr('fill', options.color)
                 .call(@axis.y)
                 .attr("transform", "translate("+((options.index+1)*30)+","+ (-@options.height+29)+")")
-                
+
 
 
             element.selectAll('.axis .domain')
                 .attr("stroke-width", "1")
                 .attr("stroke", options.color)
                 .attr("shape-rendering", "crispEdges")
-                .attr("fill", "none");
+                .attr("fill", "none")
 
             element.selectAll('.axis line')
                 .attr("stroke-width", "1")
                 .attr("shape-rendering", "crispEdges")
-                .attr("stroke", options.color);
+                .attr("stroke", options.color)
 
             element.selectAll('.axis path')
                 .attr("stroke-width", "1")
                 .attr("shape-rendering", "crispEdges")
-                .attr("stroke", options.color);
-                
-                
+                .attr("stroke", options.color)
+
+
 
 
 
@@ -509,12 +561,16 @@ class TimeSlider
 
         @redraw = =>
 
-            # update brush
-            @brush.x(@scales.x).extent(@brush.extent())
+            # repaint the axis
+            d3.select(@element)
+                .select('g.mainaxis')
+                  .call(@axis.x)
+                .selectAll('text')
+                  .attr('x', 1)
+                  .style('text-anchor', 'start')
 
-            # repaint the axis and the brush
-            d3.select(@element).select('g.mainaxis').call(@axis.x)
-            d3.select(@element).select('g.brush').call(@brush)
+            # repaint brush
+            @redrawBrush()
 
             # repaint the datasets
             # First paint lines and ticks
@@ -530,7 +586,7 @@ class TimeSlider
                     @updateDataset(dataset)
 
             # repaint timetick
-            drawTimetick() 
+            drawTimetick()
 
         # resizing (the window)
         resize = =>
@@ -544,27 +600,71 @@ class TimeSlider
         d3.select(window).on('resize', resize)
 
         # zooming & dragging
-        zoom = =>
-            @redraw()
-
         @options.zoom = d3.behavior.zoom()
             .x(@scales.x)
             .size([@options.width, @options.height])
             .scaleExtent([1, Infinity])
-            .on('zoom', zoom)
+            .on('zoom', @redraw)
         @svg.call(@options.zoom)
 
         if @options.display
             @center(@options.display.start, @options.display.end)
 
+        hideTimeTooltip= =>
+            @tooltip_time
+                .transition()
+                .duration(100)
+                .style("opacity", 0)
+
+        showTimeTooltip= (e)=>
+            if not (@time_tooltip and @time_tooltip_is_on)
+                return hideTimeTooltip()
+            node = @svg[0][0]
+            parent = if node.parentElement? then node.parentElement else node.parentNone
+            coords = d3.mouse(node)
+            node_offset = node.getBoundingClientRect()
+            offset_x = @time_tooltip_offset[0] + node_offset.left
+            offset_y = @time_tooltip_offset[1] + node_offset.top
+            @tooltip_time
+                .transition()
+                .duration(100)
+                .style("opacity", .9)
+            @tooltip_time
+                .html(@timeFormat(@scales.x.invert(coords[0])))
+                .style("left", (offset_x + coords[0]) + "px")
+                .style("top", (offset_y + coords[1]) + "px")
+
+        @svg
+            .on('mousemove', showTimeTooltip)
+            .on('mouseout', hideTimeTooltip)
+
+
+    # tooltip control
+
+    setBrushTooltip: (active) ->
+        @brush_tooltip = active
+
+    setBrushTooltipOffset: (offset) ->
+        @brush_tooltip_offset = offset
+
+    setTimeTooltip: (active) ->
+        @time_tooltip = active
+
+    setTimeTooltipOffset: (offset) ->
+        @time_tooltip_offset = offset
+
+
     # Function pair to allow for easy hiding and showing the time slider
     hide: ->
+        console.log('hide')
         @originalDisplay = @element.style.display
         @element.style.display = 'none'
         true
 
     show: ->
+        console.log('show')
         @element.style.display = @originalDisplay
+        @redraw()
         true
 
     domain: (params...) ->
@@ -584,6 +684,7 @@ class TimeSlider
         true
 
     select: (params...) ->
+        # update the time selection (brush)
         return false unless params.length == 2
 
         start = new Date(params[0])
@@ -593,12 +694,11 @@ class TimeSlider
         start = @options.start if start < @options.start
         end = @options.end if end > @options.end
 
-        d3.select(@element).select('g.brush').call(@brush.extent([start, end]))
+        @brushExtent = [start, end]
+
+        @redrawBrush()
         @element.dispatchEvent(new CustomEvent('selectionChanged', {
-            detail: {
-                start: @brush.extent()[0],
-                end: @brush.extent()[1]
-            }
+            detail: {start: start, end: end}
             bubbles: true,
             cancelable: true
         }))
@@ -619,7 +719,7 @@ class TimeSlider
             @options.linegraphIndex--
         else
             @options.datasetIndex--
-        
+
         d3.select(@element).select("g.dataset#dataset-#{id}").remove()
 
         for dataset of @data
