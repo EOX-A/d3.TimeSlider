@@ -135,20 +135,25 @@ class TimeSlider
 
 
         # brush
+        @options.brushEnabled ||= true
+        @brush_enabled = @options.brushEnabled
         @brushExtent = [@options.brush.start, @options.brush.end]
 
         @redrawBrush = (extent)->
             @brushExtent = extent if extent?
-            # make sure the selection does not disapper when we zoom out
             extent = @brushExtent
-            pixext = [@scales.x(extent[0]), @scales.x(extent[1])]
-            size = @options.minBrushSize
-            if (pixext[1] - pixext[0]) < size
-                mean = 0.5 * (pixext[1] + pixext[0])
-                extent = [
-                    @scales.x.invert(mean - 0.5 * size),
-                    @scales.x.invert(mean + 0.5 * size)
-                ]
+            # make sure the selection does not disapper when we zoom out
+            if @brush_enabled
+                pixext = [@scales.x(extent[0]), @scales.x(extent[1])]
+                size = @options.minBrushSize
+                if (pixext[1] - pixext[0]) < size
+                    mean = 0.5 * (pixext[1] + pixext[0])
+                    extent = [
+                        @scales.x.invert(mean - 0.5 * size),
+                        @scales.x.invert(mean + 0.5 * size)
+                    ]
+            else
+                extent = [extent[0], extent[0]]
             @brush.x(@scales.x).extent(extent)
             d3.select(@element).select('g.brush').call(@brush)
 
@@ -175,26 +180,29 @@ class TimeSlider
 
                 extent = @brush.extent()
 
-                # Check for selection limit and reduce to correct size
-                if(@options.selectionLimit > 0)
-                    @svg.selectAll('.brush')
-                        .attr({fill: "#333"})
-                    if (extent[1] - extent[0])/1000 >= @options.selectionLimit
-                        extent = [extent[0], new Date(
-                            extent[0].getTime() + @options.selectionLimit*1000
-                        )]
-                        @brush.extent(extent)
-                        d3.select(@element).select('g.brush').call(@brush)
-
-                @brushExtent = extent
-
-                @element.dispatchEvent(
-                    new CustomEvent('selectionChanged', {
-                        detail: {start: extent[0], end: extent[1]}
-                        bubbles: true,
-                        cancelable: true
-                    })
-                )
+                if @brush_enabled
+                    # Check for selection limit and reduce to correct size
+                    if(@options.selectionLimit > 0)
+                        @svg.selectAll('.brush')
+                            .attr({fill: "#333"})
+                        if (extent[1] - extent[0])/1000 >= @options.selectionLimit
+                            extent = [extent[0], new Date(
+                                extent[0].getTime() + @options.selectionLimit*1000
+                            )]
+                            @brush.extent(extent)
+                            d3.select(@element).select('g.brush').call(@brush)
+                    @brushExtent = extent
+                    @element.dispatchEvent(
+                        new CustomEvent('selectionChanged', {
+                            detail: {start: extent[0], end: extent[1]}
+                            bubbles: true,
+                            cancelable: true
+                        })
+                    )
+                else
+                    # brush disabled
+                    @brush.extent([extent[0], extent[0]])
+                    d3.select(@element).select('g.brush').call(@brush)
 
                 if (@brush_tooltip)
                     @tooltip_brush_min.transition()
@@ -640,6 +648,10 @@ class TimeSlider
             .on('mousemove', showTimeTooltip)
             .on('mouseout', hideTimeTooltip)
 
+
+    # brush controll
+    setBrush: (active) ->
+        @brush_enabled = active
 
     # tooltip control
 
