@@ -81,17 +81,6 @@ class TimeSlider
         @timetickDate = false
         @simplifyDate = d3.time.format("%d.%m.%Y - %H:%M:%S")
 
-        # debounce function for rate limiting
-        # TODO: find a better solution
-        @timeouts = []
-        # debounce = (timeout, id, fn) =>
-        #     return unless timeout and id and fn
-        #     @timeouts[id] = -1 unless @timeouts[id]
-
-        #     return =>
-        #         window.clearTimeout(@timeouts[id]) if @timeouts[id] > -1
-        #         @timeouts[id] = window.setTimeout(fn, timeout)
-
         # create a custom formatter for labeling ticks
         customFormatter = (formats) ->
             (date) ->
