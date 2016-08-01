@@ -7,19 +7,17 @@ class EOxServerWPSSource
         date.toISOString().substring(0, 19) + "Z"
 
     fetch: (start, end, params, callback) ->
-        # TODO: Start and end time inputs
-        requestString = "#{@options.url}?service=wps&request=execute&version=1.0.0&identifier=getTimeData&DataInputs=collection=#{@options.eoid}&RawDataOutput=times"
-
-        request = d3.csv requesString
-        request.row (row) => [
-            new Date(row.starttime),
-            new Date(row.endtime), {
-                id: row.identifier,
-                bbox: row.bbox.replace(/[()]/g,'').split(',').map(parseFloat)
-            }
-        ]
-        request.get (error, rows) =>
-            if not error
-                callback(rows)
+        d3.csv "#{@options.url}?service=wps&request=execute&version=1.0.0&identifier=getTimeData&DataInputs=collection=#{@options.eoid}%3Bbegin_time=#{@formatDate(start)}%3Bend_time=#{@formatDate(end)}&RawDataOutput=times"
+            .row (row) => [
+                new Date(row.starttime),
+                new Date(row.endtime), {
+                    id: row.identifier,
+                    bbox: row.bbox.replace(/[()]/g,'').split(',').map(parseFloat)
+                }
+            ]
+            .get (error, rows) =>
+                if not error
+                    console.log rows
+                    callback(rows)
 
 module.exports = EOxServerWPSSource
