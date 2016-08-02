@@ -15,7 +15,6 @@ class CapabilitiesCache
                     internalCallback(response)
 
     parseLayer: (url, layerName) ->
-        console.log "parsing layer " + layerName + " of " + url
         doc = d3.select(@responses[url].document)
         for e in doc.selectAll('Layer > Dimension[name="time"]')[0]
             if layerName == d3.select(e.parentNode).select('Name').text()
