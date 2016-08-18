@@ -180,7 +180,7 @@ class TimeSlider
                     @options.zoom
                         .scale(@options.lastZoom.scale)
                         .translate(@options.lastZoom.translate)
-                       
+
                     @tooltipBrushMin.transition()
                         .duration(100)
                         .style("opacity", .9)
@@ -281,7 +281,7 @@ class TimeSlider
 
     #         r = @svg.selectAll('.timetick')
     #             .data([@timetickDate])
-            
+
     #         r.enter().append('rect')
     #             .attr('class', 'timetick')
     #             .attr('x', (a) =>  @scales.x(a) )
@@ -363,7 +363,7 @@ class TimeSlider
 
         r = datasetElement.selectAll('rect')
             .data(records)
-        
+
         r.enter().append('rect')
             .attr('x', (record) => @scales.x(new Date(record[0])) )
             .attr('y', - (@options.ticksize + 3) * dataset.index + -(@options.ticksize-2) )
@@ -428,7 +428,7 @@ class TimeSlider
             .attr('fill', 'none')
             .attr('transform', "translate(0,"+ (-@options.height+29)+")")
 
-        
+
         step = (@scales.y.domain()[1] - @scales.y.domain()[0])/4
         @axis.y.tickValues(
             d3.range(@scales.y.domain()[0],@scales.y.domain()[1]+step, step)
@@ -459,8 +459,9 @@ class TimeSlider
     # this function acually draws a dataset
 
     redrawDataset: (datasetId) ->
-        datasetElement = @svg.select("g.datasets #dataset-#{datasetId}")
         dataset = @datasets[datasetId]
+        if not dataset
+            return
 
         records = dataset.getRecords()
         paths = dataset.getPaths()
@@ -468,7 +469,7 @@ class TimeSlider
         color = dataset.color
 
         if paths and paths.length
-            @drawPaths(datasetElement, dataset, paths)
+            @drawPaths(dataset.element, dataset, paths)
         else if records and records.length
             points = dataset.getRecords().filter((record) =>
                 (@scales.x(new Date(record[1])) - @scales.x(new Date(record[0]))) < 5
@@ -476,8 +477,8 @@ class TimeSlider
             ranges = dataset.getRecords().filter((record) =>
                 (@scales.x(new Date(record[1])) - @scales.x(new Date(record[0]))) >= 5
             )
-            @drawRanges(datasetElement, dataset, ranges)
-            @drawPoints(datasetElement, dataset, points)
+            @drawRanges(dataset.element, dataset, ranges)
+            @drawPoints(dataset.element, dataset, points)
 
     # this function triggers the reloading of a dataset (sync)
 
@@ -595,20 +596,23 @@ class TimeSlider
         lineplot = false
 
         id = definition.id
+        @ordinal = @ordinal + 1
 
         if !definition.lineplot
             index = @options.datasetIndex++
             @svg.select('g.datasets')
                 .insert('g',':first-child')
                     .attr('class', 'dataset')
-                    .attr('id', "dataset-#{id}")
+                    .attr('id', "dataset-#{@ordinal}")
         else
             index = @options.linegraphIndex++
             lineplot = true
             @svg.select('g.datasets')
                 .append('g')
                     .attr('class', 'dataset')
-                    .attr('id', "dataset-#{id}")
+                    .attr('id', "dataset-#{@ordinal}")
+
+        element = @svg.select("g.datasets #dataset-#{@ordinal}")
 
         @datasets[id] = new Dataset({
             id: id,
@@ -617,10 +621,11 @@ class TimeSlider
             source: definition.source,
             records: definition.records,
             lineplot: lineplot,
-            debounceTime: @options.debounce
+            debounceTime: @options.debounce,
+            ordinal: @ordinal,
+            element: element
         })
-        
-        
+
         @reloadDataset(id)
 
     # remove a dataset. redraws.
@@ -629,14 +634,15 @@ class TimeSlider
 
         i = @datasets[id].index
         lp = @datasets[id].lineplot
+        ordinal = @datasets[id].ordinal
         delete @datasets[id]
 
         if lp
             @options.linegraphIndex--
         else
             @options.datasetIndex--
-        
-        d3.select(@element).select("g.dataset#dataset-#{id}").remove()
+
+        d3.select(@element).select("g.dataset#dataset-#{ordinal}").remove()
 
         for dataset of @datasets
             if lp == @datasets[dataset].lineplot
@@ -703,7 +709,7 @@ class TimeSlider
 # Dataset utility class for internal use only
 class Dataset
     constructor: (options) ->
-        { @id,  @color, @source, @sourceParams, @index, @records, @paths, @lineplot } = options
+        { @id,  @color, @source, @sourceParams, @index, @records, @paths, @lineplot, @ordinal, @element } = options
         @syncDebounced = debounce(@sync, options.debounceTime)
 
     getSource: ->
@@ -739,5 +745,3 @@ class Source
 
 
 module.exports = TimeSlider
-
-
