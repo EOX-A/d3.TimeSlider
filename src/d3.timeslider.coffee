@@ -77,6 +77,7 @@ class TimeSlider
 
         # object to hold individual data points / data ranges
         @datasets = {}
+        @ordinal = 0
 
         @timetickDate = false
         @simplifyDate = d3.time.format("%d.%m.%Y - %H:%M:%S")
@@ -596,7 +597,7 @@ class TimeSlider
         lineplot = false
 
         id = definition.id
-        @ordinal = @ordinal + 1
+        @ordinal++
 
         if !definition.lineplot
             index = @options.datasetIndex++
@@ -632,9 +633,10 @@ class TimeSlider
     removeDataset: (id) ->
         return false unless @datasets[id]?
 
-        i = @datasets[id].index
-        lp = @datasets[id].lineplot
-        ordinal = @datasets[id].ordinal
+        dataset = @datasets[id]
+        i = dataset.index
+        lp = dataset.lineplot
+        ordinal = dataset.ordinal
         delete @datasets[id]
 
         if lp
