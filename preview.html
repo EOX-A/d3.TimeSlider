@@ -78,9 +78,9 @@ window.addEventListener('load', function() {
 				id: 'dst',
 				color: 'purple',
 				lineplot: true,
-				data: new TimeSlider.Plugin.WPS({ 
-					url: 'http://localhost:8300/ows', 
-					eoid: 'dst', 
+				data: new TimeSlider.Plugin.WPS({
+					url: 'http://localhost:8300/ows',
+					eoid: 'dst',
 					dataset: 'dst',
 					indices: true,
 					processid: "get_indices",
@@ -147,22 +147,32 @@ window.addEventListener('load', function() {
 						[ new Date("2012-01-06T12:00:00Z"), new Date("2012-01-06T16:00:00Z"), {visible: false} ],
 					]);
 				}}
-			}/*,
-			
+			},
+
 			{
 				id: 'kp',
 				color: 'red',
 				lineplot: true,
-				data: new TimeSlider.Plugin.WPS({ 
-					url: 'http://localhost:8300/ows', 
-					eoid: 'kp', 
-					dataset: 'kp',
-					indices: true,
-					processid: "get_indices",
-					collectionid: "index_id",
-					output: "output"
-				})
-			},*/
+
+				records: null,
+				source: function(start, end, params, callback) {
+					callback([
+						[ new Date("2012-01-01T12:00:00Z"), 1, "coverage.id"],
+						[ new Date("2012-01-02T12:00:00Z"), 2, "coverage.id"],
+						[ new Date("2012-01-03T12:00:00Z"), 1, "coverage.id"],
+					]);
+				}
+				// data: new TimeSlider.Plugin.WPS({
+				// 	url: 'vires.services/ows',
+				// 	eoid: 'kp',
+				// 	dataset: 'kp',
+				// 	indices: true,
+				// 	processid: "get_indices",
+				// 	collectionid: "index_id",
+				// 	output: "output"
+				// })
+			},
+
 			/*{
 				id: 'fsc',
 				color: 'green',
@@ -205,9 +215,9 @@ window.addEventListener('load', function() {
 				id: 'dst',
 				color: 'purple',
 				lineplot: true,
-				data: new TimeSlider.Plugin.WPS({ 
-					url: 'http://localhost:8300/ows', 
-					eoid: 'dst', 
+				data: new TimeSlider.Plugin.WPS({
+					url: 'http://localhost:8300/ows',
+					eoid: 'dst',
 					dataset: 'dst',
 					indices: true,
 					processid: "get_indices",
@@ -239,9 +249,9 @@ window.addEventListener('load', function() {
 				id: 'kp',
 				color: 'red',
 				lineplot: true,
-				data: new TimeSlider.Plugin.WPS({ 
-					url: 'http://localhost:8300/ows', 
-					eoid: 'kp', 
+				data: new TimeSlider.Plugin.WPS({
+					url: 'http://localhost:8300/ows',
+					eoid: 'kp',
 					dataset: 'kp',
 					indices: true,
 					processid: "get_indices",
