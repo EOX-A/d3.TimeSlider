@@ -59,7 +59,6 @@ module.exports = (grunt) ->
         banner: '/* <%= pkg.name %> - version <%= pkg.version %> - <%= grunt.template.today("yyyy-mm-dd") %>\n * See <%= pkg.homepage %> for more information! */\n',
         mangle:
           except: ['d3', 'filter', 'map']
-        report: 'gzip'
         preserveComment: false
       compile:
         files:

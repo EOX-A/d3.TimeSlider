@@ -72,6 +72,7 @@ class TimeSlider
         @options.debounce ||= 50
         @options.ticksize ||= 3
         @options.datasets ||= []
+        @options.selectionLimit ||= -1
 
         @recordFilter = @options.recordFilter
 
@@ -80,26 +81,17 @@ class TimeSlider
         @ordinal = 0
 
         @timetickDate = false
-        @simplifyDate = d3.time.format("%d.%m.%Y - %H:%M:%S")
+        @simplifyDate = d3.time.format.utc("%d.%m.%Y - %H:%M:%S")
 
-        # create a custom formatter for labeling ticks
-        customFormatter = (formats) ->
-            (date) ->
-                i = formats.length - 1
-                f = formats[i]
-
-                f = formats[i--] until f[1](date)
-                f[0](date)
-
-        customFormats = customFormatter([
-            [d3.time.format("%Y"), -> true ],
-            [d3.time.format("%B %Y"), (d) -> d.getUTCMonth() ],
-            [d3.time.format("%b %d %Y"), (d) -> d.getUTCDate() != 1 ],
-            [d3.time.format("%b %d %Y "), (d) ->d.getUTCDay() && d.getUTCDate() != 1 ],
-            [d3.time.format("%I %p"), (d) -> d.getUTCHours() ],
-            [d3.time.format("%I:%M"), (d) -> d.getUTCMinutes() ],
-            [d3.time.format(":%S"), (d) -> d.getUTCSeconds() ],
-            [d3.time.format(".%L"), (d) -> d.getUTCMilliseconds() ]
+        customFormats = d3.time.format.utc.multi([
+            [".%L", (d) -> d.getUTCMilliseconds() ]
+            [":%S", (d) -> d.getUTCSeconds() ],
+            ["%H:%M", (d) -> d.getUTCMinutes() ],
+            ["%H:%M", (d) -> d.getUTCHours() ],
+            ["%b %d %Y ", (d) ->d.getUTCDay() && d.getUTCDate() != 1 ],
+            ["%b %d %Y", (d) -> d.getUTCDate() != 1 ],
+            ["%B %Y", (d) -> d.getUTCMonth() ],
+            ["%Y", -> true ]
         ])
 
         # scales
@@ -107,7 +99,6 @@ class TimeSlider
             x: d3.time.scale.utc()
                 .domain([ @options.domain.start, @options.domain.end ])
                 .range([0, @options.width])
-                .nice()
             y: d3.scale.linear()
                 .range([@options.height-29, 0])
         }
@@ -131,6 +122,13 @@ class TimeSlider
         d3.select(@element).select('g.mainaxis .domain')
             .attr('transform', "translate(0, #{@options.height - 18})")
 
+        @setBrushTooltip = (active) =>
+            @brushTooltip = active
+
+        @setBrushTooltipOffset = (offset) =>
+            @brushTooltipOffset = offset
+
+
         # create the brush with all necessary event callbacks
         @brush = d3.svg.brush()
             .x(@scales.x)
@@ -149,7 +147,18 @@ class TimeSlider
                 @options.zoom
                     .scale(@options.lastZoom.scale)
                     .translate(@options.lastZoom.translate)
-                    .on('zoom', => @redraw())
+                    .on('zoom', zoom)
+
+                # Check for selection limit and reduce to correct size
+                if @options.selectionLimit > 0
+                    @svg.selectAll('.brush')
+                        .attr({fill: "#333"})
+                    s = @brush.extent()
+                    if ((s[1]-s[0])/1000 >= @options.selectionLimit)
+                        tmpdate = new Date(@brush.extent()[0].getTime() + @options.selectionLimit * 1000)
+                        @brush.extent([@brush.extent()[0], tmpdate])
+                        d3.select(@element).select('g.brush').call(@brush)
+
                 @element.dispatchEvent(
                     new CustomEvent('selectionChanged', {
                         detail: {
@@ -172,7 +181,18 @@ class TimeSlider
 
             )
             .on('brush', =>
-                if (@brushTooltip)
+                # Check for selection limit, warn in red if selection is to big
+                if @options.selectionLimit > 0
+                    s = @brush.extent()
+                    if (s[1]-s[0]) / 1000 > @options.selectionLimit
+                        @svg.selectAll('.brush')
+                            .attr({fill: "red"})
+                            
+                    else
+                        @svg.selectAll('.brush')
+                            .attr({fill: "#333"})
+
+                if @brushTooltip
                     offheight = 0
                     if @svg[0][0].parentElement?
                         offheight = @svg[0][0].parentElement.offsetHeight
