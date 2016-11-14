@@ -93,7 +93,6 @@ class TimeSlider
             x: d3.time.scale.utc()
                 .domain([ @options.domain.start, @options.domain.end ])
                 .range([0, @options.width])
-                .nice()
             y: d3.scale.linear()
                 .range([@options.height-29, 0])
 
