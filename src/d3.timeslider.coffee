@@ -67,7 +67,7 @@ class TimeSlider
             @options.height = @svg[0][0].clientHeight
 
         @options.brush ||= {}
-        @options.brush.start || = @options.start
+        @options.brush.start ||= @options.start
         @options.brush.end ||= new Date(new Date(@options.brush.start).setDate(@options.brush.start.getDate() + 3))
         @options.debounce ||= 50
         @options.ticksize ||= 3
@@ -424,7 +424,7 @@ class TimeSlider
             .datum(data)
             .attr("class", "line")
             .attr("d", line)
-            .attr('stroke', color)
+            .attr('stroke', dataset.color)
             .attr('stroke-width', "1.5px")
             .attr('fill', 'none')
             .attr('transform', "translate(0,"+ (-@options.height+29)+")")
@@ -492,38 +492,41 @@ class TimeSlider
             finalRecords = []
             finalPaths = []
 
-            for record in records
+            if !dataset.lineplot
+                for record in records
+                    if record instanceof Date
+                        record = [ record, record ]
 
-                if record instanceof Date
-                    record = [ record, record ]
+                    else if not (record[1] instanceof Date)
+                        record = [ record[0], record[0] ].concat(record[1..])
 
-                else if not (record[1] instanceof Date)
-                    record = [ record[0], record[0] ].concat(record[1..])
+                    # TODO: implement other data conversions
 
-                # TODO: implement other data conversions
+                    finalRecords.push(record)
 
-                finalRecords.push(record)
+                    # if record[0] instanceof Date and record[1] instanceof Date
+                    #     ranges.push(record)
+                    # else
+                    #     points.push(record)
 
-                # if record[0] instanceof Date and record[1] instanceof Date
-                #     ranges.push(record)
-                # else
-                #     points.push(record)
+                    # TODO: implement paths
 
-                # TODO: implement paths
+                    # if Array.isArray(record)
+                    #     if record.length == 3
+                    #         paths.push(record)
+                    #     else
+                    #         ranges.push(record)
+                    # else if record instanceof Date
+                    #     points.push(record)
 
-                # if Array.isArray(record)
-                #     if record.length == 3
-                #         paths.push(record)
-                #     else
-                #         ranges.push(record)
-                # else if record instanceof Date
-                #     points.push(record)
-
-                # # TODO: keep this?
-                # else if record.split("/").length > 1
-                #     elements = record.split("/")
-                #     elements.pop()
-                #     ranges.push(elements)
+                    # # TODO: keep this?
+                    # else if record.split("/").length > 1
+                    #     elements = record.split("/")
+                    #     elements.pop()
+                    #     ranges.push(elements)
+            else
+                # TODO: perform check of records
+                finalPaths = records
 
             dataset.setRecords(finalRecords)
             dataset.setPaths(finalPaths)
@@ -745,5 +748,6 @@ class Dataset
 class Source
     fetch: (start, end, params, callback) ->
 
+TimeSlider.Plugin = {}
 
 module.exports = TimeSlider
