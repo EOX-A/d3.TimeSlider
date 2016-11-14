@@ -128,7 +128,6 @@ class TimeSlider
         @setBrushTooltipOffset = (offset) =>
             @brushTooltipOffset = offset
 
-
         # create the brush with all necessary event callbacks
         @brush = d3.svg.brush()
             .x(@scales.x)
@@ -147,14 +146,14 @@ class TimeSlider
                 @options.zoom
                     .scale(@options.lastZoom.scale)
                     .translate(@options.lastZoom.translate)
-                    .on('zoom', zoom)
+                    .on('zoom', => @redraw)
 
                 # Check for selection limit and reduce to correct size
                 if @options.selectionLimit > 0
                     @svg.selectAll('.brush')
                         .attr({fill: "#333"})
                     s = @brush.extent()
-                    if ((s[1]-s[0])/1000 >= @options.selectionLimit)
+                    if (s[1]-s[0])/1000 >= @options.selectionLimit
                         tmpdate = new Date(@brush.extent()[0].getTime() + @options.selectionLimit * 1000)
                         @brush.extent([@brush.extent()[0], tmpdate])
                         d3.select(@element).select('g.brush').call(@brush)
@@ -187,7 +186,7 @@ class TimeSlider
                     if (s[1]-s[0]) / 1000 > @options.selectionLimit
                         @svg.selectAll('.brush')
                             .attr({fill: "red"})
-                            
+
                     else
                         @svg.selectAll('.brush')
                             .attr({fill: "#333"})
