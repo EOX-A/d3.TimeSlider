@@ -784,6 +784,4 @@ class Dataset
 class Source
     fetch: (start, end, params, callback) ->
 
-TimeSlider.Plugin = {}
-
 module.exports = TimeSlider

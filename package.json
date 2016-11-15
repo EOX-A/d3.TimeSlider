@@ -24,6 +24,7 @@
   "main": "d3.timeslider.coffee",
   "devDependencies": {
     "bootstrap": "^3.3.6",
+    "browserify-shim": "^3.8.12",
     "coffeeify": "^2.0.1",
     "grunt": "~0.4.1",
     "grunt-browserify": "^5.0.0",
@@ -40,5 +41,11 @@
     "d3": "^3.5.17",
     "debounce": "^1.0.0",
     "libcoverage": "^0.1.10"
+  },
+  "browserify": {
+      "transform": [ "browserify-shim" ]
+  },
+  "browserify-shim": {
+      "d3": "global:d3"
   }
 }
