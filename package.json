@@ -39,6 +39,6 @@
   "dependencies": {
     "d3": "^3.5.17",
     "debounce": "^1.0.0",
-    "libcoverage": "^0.1.8"
+    "libcoverage": "^0.1.10"
   }
 }
