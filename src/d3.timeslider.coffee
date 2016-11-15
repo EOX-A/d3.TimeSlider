@@ -66,13 +66,26 @@ class TimeSlider
             @options.width = @svg[0][0].clientWidth
             @options.height = @svg[0][0].clientHeight
 
+        @options.selectionLimit ||= null
         @options.brush ||= {}
         @options.brush.start ||= @options.start
-        @options.brush.end ||= new Date(new Date(@options.brush.start).setDate(@options.brush.start.getDate() + 3))
+        if @options.selectionLimit
+            @options.brush.end ||= new Date(@options.brush.start.getTime() + @options.selectionLimit * 1000)
+        else
+            @options.brush.end ||= new Date(new Date(@options.brush.start).setDate(@options.brush.start.getDate() + 3))
+
+        @selectionConstraint = [
+            new Date(@options.brush.start.getTime() - @options.selectionLimit * 1000),
+            new Date(@options.brush.end.getTime() + @options.selectionLimit * 1000)
+        ]
+
+        @options.display ||= {}
+        @options.display.start ||= @options.domain.start
+        @options.display.end ||= @options.domain.end
+
         @options.debounce ||= 50
         @options.ticksize ||= 3
         @options.datasets ||= []
-        @options.selectionLimit ||= -1
 
         @recordFilter = @options.recordFilter
 
@@ -97,7 +110,7 @@ class TimeSlider
         # scales
         @scales = {
             x: d3.time.scale.utc()
-                .domain([ @options.domain.start, @options.domain.end ])
+                .domain([ @options.display.start, @options.display.end ])
                 .range([0, @options.width])
             y: d3.scale.linear()
                 .range([@options.height-29, 0])
@@ -132,32 +145,32 @@ class TimeSlider
         @brush = d3.svg.brush()
             .x(@scales.x)
             .on('brushstart', =>
-                @options.lastZoom = {
-                    scale: @options.zoom.scale(),
-                    translate: [
-                        @options.zoom.translate()[0],
-                        @options.zoom.translate()[1],
-                    ]
-                }
+                # deactivate zoom behavior
+                @brushing = true
+                @prevTranslate = @options.zoom.translate()
+                @prevScale = @options.zoom.scale()
+                @selectionConstraint = null
 
-                @options.zoom.on('zoom', null)
+                # show the brush tooltips
+                if @brushTooltip
+                    @tooltipBrushMin.transition()
+                        .duration(100)
+                        .style("opacity", .9)
+                    @tooltipBrushMax.transition()
+                        .duration(100)
+                        .style("opacity", .9)
             )
             .on('brushend', =>
-                @options.zoom
-                    .scale(@options.lastZoom.scale)
-                    .translate(@options.lastZoom.translate)
-                    .on('zoom', => @redraw)
+                @brushing = false
+                @options.zoom.translate(@prevTranslate)
+                @options.zoom.scale(@prevScale)
 
-                # Check for selection limit and reduce to correct size
-                if @options.selectionLimit > 0
-                    @svg.selectAll('.brush')
-                        .attr({fill: "#333"})
-                    s = @brush.extent()
-                    if (s[1]-s[0])/1000 >= @options.selectionLimit
-                        tmpdate = new Date(@brush.extent()[0].getTime() + @options.selectionLimit * 1000)
-                        @brush.extent([@brush.extent()[0], tmpdate])
-                        d3.select(@element).select('g.brush').call(@brush)
+                @checkBrush()
+                @redraw()
 
+                @selectionConstraint = null
+
+                # dispatch the events
                 @element.dispatchEvent(
                     new CustomEvent('selectionChanged', {
                         detail: {
@@ -169,53 +182,33 @@ class TimeSlider
                     })
                 )
 
-                if (@brushTooltip)
+                # hide the brush tooltips
+                if @brushTooltip
                     @tooltipBrushMin.transition()
                         .duration(100)
                         .style("opacity", 0)
-
                     @tooltipBrushMax.transition()
                         .duration(100)
                         .style("opacity", 0)
-
             )
             .on('brush', =>
-                # Check for selection limit, warn in red if selection is to big
-                if @options.selectionLimit > 0
-                    s = @brush.extent()
-                    if (s[1]-s[0]) / 1000 > @options.selectionLimit
-                        @svg.selectAll('.brush')
-                            .attr({fill: "red"})
-
+                if @options.selectionLimit != null
+                    if @selectionConstraint == null
+                        [low, high] = @brush.extent()
+                        @selectionConstraint = [
+                            new Date(high.getTime() - @options.selectionLimit * 1000),
+                            new Date(low.getTime() + @options.selectionLimit * 1000)
+                        ]
                     else
-                        @svg.selectAll('.brush')
-                            .attr({fill: "#333"})
+                        if d3.event.mode == "move"
+                            [low, high] = @brush.extent()
+                            @selectionConstraint = [
+                                new Date(high.getTime() - @options.selectionLimit * 1000),
+                                new Date(low.getTime() + @options.selectionLimit * 1000)
+                            ]
+                        @checkBrush()
 
-                if @brushTooltip
-                    offheight = 0
-                    if @svg[0][0].parentElement?
-                        offheight = @svg[0][0].parentElement.offsetHeight
-                    else
-                        offheight = @svg[0][0].parentNode.offsetHeight
-                    @options.zoom
-                        .scale(@options.lastZoom.scale)
-                        .translate(@options.lastZoom.translate)
-
-                    @tooltipBrushMin.transition()
-                        .duration(100)
-                        .style("opacity", .9)
-                    @tooltipBrushMin.html(@simplifyDate(@brush.extent()[0]))
-                        .style("left", (@scales.x(@brush.extent()[0])+@brushTooltipOffset[0]) + "px")
-                        .style("top", (offheight + @brushTooltipOffset[1]) + "px")
-
-
-                    @tooltipBrushMax.transition()
-                        .duration(100)
-                        .style("opacity", .9)
-                    @tooltipBrushMax.html(@simplifyDate(@brush.extent()[1]))
-                        .style("left", (@scales.x(@brush.extent()[1])+@brushTooltipOffset[0]) + "px")
-                        .style("top", (offheight + @brushTooltipOffset[1] + 20) + "px")
-
+                @redraw()
             )
             .extent([@options.brush.start, @options.brush.end])
 
@@ -246,11 +239,20 @@ class TimeSlider
             )
 
         # create the zoom behavior
+        minScale = (@options.display.start - @options.display.end) / (@options.domain.start - @options.domain.end)
+
         @options.zoom = d3.behavior.zoom()
             .x(@scales.x)
             .size([@options.width, @options.height])
-            .scaleExtent([1, Infinity])
-            .on('zoom', => @redraw())
+            .scaleExtent([minScale, Infinity])
+            .on('zoom', =>
+                if @brushing
+                    @options.zoom.scale(@prevScale)
+                    @options.zoom.translate(@prevTranslate)
+                else
+                    [start, end] = @scales.x.domain();
+                    @center(start, end)
+            )
         @svg.call(@options.zoom)
 
         # initialize all datasets
@@ -265,6 +267,18 @@ class TimeSlider
     ## Private API
     ###
 
+    checkBrush: ->
+        if @selectionConstraint
+            [a, b] = @selectionConstraint
+            [x, y] = @brush.extent()
+
+            if x < a
+                x = a
+            if y > b
+                y = b
+
+            @brush.extent([x, y])
+
     redraw: ->
         # update brush
         @brush.x(@scales.x).extent(@brush.extent())
@@ -272,6 +286,23 @@ class TimeSlider
         # repaint the axis and the brush
         d3.select(@element).select('g.mainaxis').call(@axis.x)
         d3.select(@element).select('g.brush').call(@brush)
+
+        # redraw brushes
+        if @brushTooltip
+            offheight = 0
+            if @svg[0][0].parentElement?
+                offheight = @svg[0][0].parentElement.offsetHeight
+            else
+                offheight = @svg[0][0].parentNode.offsetHeight
+
+            @tooltipBrushMin.html(@simplifyDate(@brush.extent()[0]))
+                .style("left", (@scales.x(@brush.extent()[0])+@brushTooltipOffset[0]) + "px")
+                .style("top", (offheight + @brushTooltipOffset[1]) + "px")
+
+            @tooltipBrushMax.html(@simplifyDate(@brush.extent()[1]))
+                .style("left", (@scales.x(@brush.extent()[1])+@brushTooltipOffset[0]) + "px")
+                .style("top", (offheight + @brushTooltipOffset[1] + 20) + "px")
+
 
         # repaint the datasets
         # First paint lines and ticks
@@ -519,30 +550,7 @@ class TimeSlider
                     else if not (record[1] instanceof Date)
                         record = [ record[0], record[0] ].concat(record[1..])
 
-                    # TODO: implement other data conversions
-
                     finalRecords.push(record)
-
-                    # if record[0] instanceof Date and record[1] instanceof Date
-                    #     ranges.push(record)
-                    # else
-                    #     points.push(record)
-
-                    # TODO: implement paths
-
-                    # if Array.isArray(record)
-                    #     if record.length == 3
-                    #         paths.push(record)
-                    #     else
-                    #         ranges.push(record)
-                    # else if record instanceof Date
-                    #     points.push(record)
-
-                    # # TODO: keep this?
-                    # else if record.split("/").length > 1
-                    #     elements = record.split("/")
-                    #     elements.pop()
-                    #     ranges.push(elements)
             else
                 # TODO: perform check of records
                 finalPaths = records
@@ -678,15 +686,24 @@ class TimeSlider
     hasDataset: (id) ->
         return false unless @datasets[id]?
 
-    # TODO redraws.
+    # redraws.
     center: (params...) ->
         start = new Date(params[0])
         end = new Date(params[1])
         [ start, end ] = [ end, start ] if end < start
 
-        @options.zoom.scale((@options.domain.end - @options.domain.start) / (end - start))
-        @options.zoom.translate([ @options.zoom.translate()[0] - @scales.x(start), 0 ])
+        diff = end - start
+        if start < @options.domain.start
+            start = @options.domain.start
+            newEnd = new Date(start.getTime() + diff)
+            end = if newEnd < @options.domain.end then newEnd else @options.domain.end
+        if end > @options.domain.end
+            end = @options.domain.end
+            newStart = new Date(end.getTime() - diff)
+            start = if newStart > @options.domain.start then newStart else @options.domain.start
 
+        @options.zoom.scale((@options.display.end - @options.display.start) / (end - start))
+        @options.zoom.translate([ @options.zoom.translate()[0] - @scales.x(start), 0 ])
         @redraw()
 
         true
