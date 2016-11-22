@@ -317,34 +317,12 @@ class TimeSlider
                 @reloadDataset(dataset)
                 @redrawDataset(dataset)
 
-        # repaint timetick
-        # TODO: is this unneccessary
-        #@drawTimetick()
-
-    # TODO: this method seems quite unused
-    # drawTimetick: ->
-    #     @svg.selectAll('.timetick').remove()
-
-    #     # TODO: @timetickDate seems to be set nowhere, so this is obviously never called???
-
-
-    #     if (Object.prototype.toString.call(@timetickDate) == '[object Date]')
-
-    #         r = @svg.selectAll('.timetick')
-    #             .data([@timetickDate])
-
-    #         r.enter().append('rect')
-    #             .attr('class', 'timetick')
-    #             .attr('x', (a) =>  @scales.x(a) )
-    #             .attr('y', 0 )
-    #             .attr('width', (a) ->  1 )
-    #             .attr('height', (@options.height-20))
-    #             .attr('stroke', 'red')
-    #             .attr('stroke-width', 1)
-    #             .attr('fill', (a) -> options.color)  # TODO: what color?
-
-    #         r.exit().remove()
-
+        # add classes to the ticks. When we are dealing with dates
+        # (i.e: ms, s, m and h are zero), add the tick-date class
+        d3.select(@element).selectAll('.mainaxis g.tick text')
+          .classed('tick-date', (d) -> !(
+            d.getUTCMilliseconds() | d.getUTCSeconds() | d.getUTCMinutes() | d.getUTCHours()
+          ))
 
     # Convenience method to hook up a single record elements events
     setupRecord: (recordElement, dataset) ->
@@ -482,7 +460,7 @@ class TimeSlider
 
         step = (@scales.y.domain()[1] - @scales.y.domain()[0])/4
         @axis.y.tickValues(
-            d3.range(@scales.y.domain()[0],@scales.y.domain()[1]+step, step)
+            d3.range(@scales.y.domain()[0], @scales.y.domain()[1]+step, step)
         )
 
         datasetElement.append("g")
