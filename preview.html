@@ -57,6 +57,8 @@ window.addEventListener('load', function() {
 	slider = new TimeSlider(document.getElementById('d3_timeslider'), {
 		debounce: 100,
 		ticksize: 8,
+		brushTooltip: true,
+		constrain: true,
 		domain: {
 			start: new Date("2012-01-01T00:00:00Z"),
 			end: new Date("2012-01-10T23:59:59Z"),
@@ -124,6 +126,7 @@ window.addEventListener('load', function() {
 				id: 'img2013-3',
 				color: 'blue',
 				records: null,
+				histogram: true,
 				source: { fetch: function(start, end, params, callback) {
 					callback([
 						[ new Date("2012-01-01T12:00:00Z"), new Date("2012-01-01T16:00:00Z"), {name: "A"} ],
