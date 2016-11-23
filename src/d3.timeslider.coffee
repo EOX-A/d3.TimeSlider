@@ -387,6 +387,74 @@ class TimeSlider
             )
         )
 
+    setupBin: (binElement, dataset, y) ->
+        binElement
+            .attr("class", "bin")
+            .attr("stroke", dataset.color)
+            .attr("x", 1)
+            .attr("width", (d) => @scales.x(d.x.getTime() + d.dx) - @scales.x(d.x) - 1)
+            .attr("transform", (d) => "translate(" + @scales.x(new Date(d.x)) + ",-" + y(d.length) + ")")
+            .attr("height", (d) -> y(d.length))
+
+        binElement
+          .on("mouseover", (bin) =>
+            @element.dispatchEvent(
+                new CustomEvent('binMouseover', {
+                    detail: {
+                        dataset: dataset.id,
+                        start: bin.x,
+                        end: new Date(bin.x.getTime() + bin.dx),
+                        bin: bin
+                    }
+                    bubbles: true,
+                    cancelable: true
+                })
+            )
+
+            if bin.length
+                names = bin.filter((r) -> r[2] && (r[2].name || r[2].id))
+                  .map((r) -> (r[2].name || r[2].id))
+
+                if names.length
+                    @tooltip.transition()
+                        .duration(200)
+                        .style("opacity", .9)
+                    @tooltip.html(names.join("<br>"))
+                        .style("left", (d3.event.pageX) + "px")
+                        .style("top", (d3.event.pageY - 28) + "px")
+          )
+          .on("mouseout", (bin) =>
+            @element.dispatchEvent(
+                new CustomEvent('binMouseout', {
+                    detail: {
+                        dataset: dataset.id,
+                        start: bin.x,
+                        end: new Date(bin.x.getTime() + bin.dx),
+                        bin: bin
+                    }
+                    bubbles: true,
+                    cancelable: true
+                })
+            )
+            @tooltip.transition()
+                .duration(500)
+                .style("opacity", 0)
+          )
+          .on('click', (bin) =>
+            @element.dispatchEvent(
+                new CustomEvent('binClicked', {
+                    detail: {
+                        dataset: dataset.id,
+                        start: bin.x,
+                        end: new Date(bin.x.getTime() + bin.dx),
+                        bin: bin
+                    }
+                    bubbles: true,
+                    cancelable: true
+                })
+            )
+          )
+
     drawRanges: (datasetElement, dataset, records) ->
         datasetElement.selectAll('rect').remove()
 
@@ -423,6 +491,32 @@ class TimeSlider
             .call((recordElement) => @setupRecord(recordElement, dataset))
 
         p.exit().remove()
+
+    drawHistogram: (datasetElement, dataset, records) ->
+        ticks = @scales.x.ticks(10)
+        dx = ticks[1] - ticks[0]
+        ticks = [new Date(ticks[0].getTime() - dx)].concat(ticks).concat([new Date(ticks[ticks.length - 1].getTime() + dx)])
+
+        bins = d3.layout.histogram()
+          .bins(ticks)
+          .range(@scales.x.domain())
+          .value((record) -> new Date(record[0] + (record[1] - record[0]) / 2))(records)
+
+        y = d3.scale.linear()
+          .domain([0, 5]) #d3.max(bins, (d) -> d.length)])
+          .range([0, @options.height - 29])
+          .clamp(true)
+
+        bars = datasetElement.selectAll(".bin")
+          .data(bins)
+
+        bars.attr("class", "bin")
+          .call((binElement) => @setupBin(binElement, dataset, y))
+
+        bars.enter().append("rect")
+          .call((binElement) => @setupBin(binElement, dataset, y))
+
+        bars.exit().remove()
 
     drawPaths: (datasetElement, dataset, data) ->
         @scales.y.domain(d3.extent(data, (d) -> d[1]))
@@ -500,14 +594,20 @@ class TimeSlider
         if paths and paths.length
             @drawPaths(dataset.element, dataset, paths)
         else if records and records.length
-            points = dataset.getRecords().filter((record) =>
-                (@scales.x(new Date(record[1])) - @scales.x(new Date(record[0]))) < 5
+            data = records.map((record) =>
+                new Date(record[0] + (record[1] - record[0]) / 2)
             )
-            ranges = dataset.getRecords().filter((record) =>
-                (@scales.x(new Date(record[1])) - @scales.x(new Date(record[0]))) >= 5
-            )
-            @drawRanges(dataset.element, dataset, ranges)
-            @drawPoints(dataset.element, dataset, points)
+            if dataset.histogram
+                @drawHistogram(dataset.element, dataset, records)
+            else
+                points = records.filter((record) =>
+                    (@scales.x(new Date(record[1])) - @scales.x(new Date(record[0]))) < 5
+                )
+                ranges = records.filter((record) =>
+                    (@scales.x(new Date(record[1])) - @scales.x(new Date(record[0]))) >= 5
+                )
+                @drawRanges(dataset.element, dataset, ranges)
+                @drawPoints(dataset.element, dataset, points)
 
     # this function triggers the reloading of a dataset (sync)
 
@@ -632,7 +732,8 @@ class TimeSlider
             lineplot: lineplot,
             debounceTime: @options.debounce,
             ordinal: @ordinal,
-            element: element
+            element: element,
+            histogram: definition.histogram
         })
 
         @reloadDataset(id)
@@ -728,7 +829,7 @@ class TimeSlider
 # Dataset utility class for internal use only
 class Dataset
     constructor: (options) ->
-        { @id,  @color, @source, @sourceParams, @index, @records, @paths, @lineplot, @ordinal, @element } = options
+        { @id,  @color, @source, @sourceParams, @index, @records, @paths, @lineplot, @ordinal, @element, @histogram } = options
         @syncDebounced = debounce(@sync, options.debounceTime)
 
     getSource: ->
