@@ -26,17 +26,17 @@ class TimeSlider
     #  * TESTING
 
     constructor: (@element, @options = {}) ->
-        @brushTooltip = false
+        @brushTooltip = @options.brushTooltip
         @brushTooltipOffset = [30, 20]
 
-        @tooltip = d3.select("body").append("div")
+        @tooltip = d3.select(@element).append("div")
             .attr("class", "tooltip")
             .style("opacity", 0)
 
-        @tooltipBrushMin = d3.select("body").append("div")
+        @tooltipBrushMin = d3.select(@element).append("div")
             .attr("class", "tooltip")
             .style("opacity", 0)
-        @tooltipBrushMax = d3.select("body").append("div")
+        @tooltipBrushMax = d3.select(@element).append("div")
             .attr("class", "tooltip")
             .style("opacity", 0)
 
