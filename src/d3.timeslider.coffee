@@ -772,11 +772,11 @@ class TimeSlider
         [ start, end ] = [ end, start ] if end < start
 
         diff = end - start
-        if start < @options.domain.start
+        if @options.constrain && start < @options.domain.start
             start = @options.domain.start
             newEnd = new Date(start.getTime() + diff)
             end = if newEnd < @options.domain.end then newEnd else @options.domain.end
-        if end > @options.domain.end
+        if @options.constrain && end > @options.domain.end
             end = @options.domain.end
             newStart = new Date(end.getTime() - diff)
             start = if newStart > @options.domain.start then newStart else @options.domain.start
