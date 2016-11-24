@@ -186,6 +186,8 @@ class TimeSlider
                     @tooltipBrushMax.transition()
                         .duration(100)
                         .style("opacity", 0)
+
+                @wasBrushing = true
             )
             .on('brush', =>
                 if @options.selectionLimit != null
@@ -247,7 +249,7 @@ class TimeSlider
                     @options.zoom.translate(@prevTranslate)
                 else
                     [start, end] = @scales.x.domain();
-                    @center(start, end)
+                    @center(start, end, false)
             )
             .on('zoomend', =>
                 display = @scales.x.domain()
@@ -255,6 +257,10 @@ class TimeSlider
                     start: display[0],
                     end: display[1]
                 })
+                if not @wasBrushing
+                    for dataset of @datasets
+                        @reloadDataset(dataset)
+                @wasBrushing = false
             )
         @svg.call(@options.zoom)
 
@@ -311,13 +317,11 @@ class TimeSlider
         # First paint lines and ticks
         for dataset of @datasets
             if !@datasets[dataset].lineplot
-                @reloadDataset(dataset)
                 @redrawDataset(dataset)
 
         # Afterwards paint lines so they are not overlapped
         for dataset of @datasets
             if @datasets[dataset].lineplot
-                @reloadDataset(dataset)
                 @redrawDataset(dataset)
 
         # add classes to the ticks. When we are dealing with dates
@@ -742,9 +746,9 @@ class TimeSlider
         return false unless @datasets[id]?
 
     # redraws.
-    center: (params...) ->
-        start = new Date(params[0])
-        end = new Date(params[1])
+    center: (start, end, doReload = true) ->
+        start = new Date(start)
+        end = new Date(end)
         [ start, end ] = [ end, start ] if end < start
 
         diff = end - start
@@ -760,7 +764,9 @@ class TimeSlider
         @options.zoom.scale((@options.display.end - @options.display.start) / (end - start))
         @options.zoom.translate([ @options.zoom.translate()[0] - @scales.x(start), 0 ])
         @redraw()
-
+        if doReload
+            for dataset of @datasets
+                @reloadDataset(dataset)
         true
 
     # zoom to start/end. redraws.
