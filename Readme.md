@@ -49,6 +49,15 @@ function.
 
 Whether or not to display the brush tooltips. Defaults to `false`.
 
+### `tooltipFormatter` - `function`
+
+This function is invoked when a tooltip is to be displayed for a record. It is
+passed the record, an `Array` in the following form: `start`, `end`, and
+`params`. By default, a function is used that displays either the `id` or `name`
+property (in that order).
+
+When the function returns a falsy value, then no tooltip is displayed.
+
 ### `constrain` - `boolean`
 
 When set, the viewable interval is constrained to the `domain`.
@@ -139,6 +148,9 @@ Set the pixel offsets of the brush tooltips.
 
 Set the `recordFilter`. See the options for details. Redraws.
 
+### `setTooltipFormatter` - `function`
+
+Sets the tooltip formatting function.
 
 ## Events raised
 

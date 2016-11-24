@@ -60,6 +60,9 @@ window.addEventListener('load', function() {
 		ticksize: 8,
 		brushTooltip: true,
 		constrain: true,
+		tooltipFormatter: function(record) {
+			return record[0].toString() + ' - ' + record[1].toString();
+		},
 		domain: {
 			start: new Date("2012-01-01T00:00:00Z"),
 			end: new Date("2012-01-10T23:59:59Z"),

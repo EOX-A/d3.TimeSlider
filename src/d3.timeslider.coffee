@@ -40,6 +40,8 @@ class TimeSlider
             .attr("class", "tooltip")
             .style("opacity", 0)
 
+        @tooltipFormatter = @options.tooltipFormatter || (record) -> record[2]?.id || record[2]?.name
+
         # used for show()/hide()
         @originalDisplay = @element.style.display
 
@@ -348,10 +350,12 @@ class TimeSlider
             )
 
             if params and (params.id or params.name)
+            tooltip = @tooltipFormatter(record)
+            if tooltip
                 @tooltip.transition()
                     .duration(200)
                     .style("opacity", .9)
-                @tooltip.html(params.id or params.name)
+                @tooltip.html(tooltip)
                     .style("left", (d3.event.pageX) + "px")
                     .style("top", (d3.event.pageY - 28) + "px")
         )
@@ -390,7 +394,7 @@ class TimeSlider
     setupBin: (binElement, dataset, y) ->
         binElement
             .attr("class", "bin")
-            .attr("stroke", dataset.color)
+            .attr("fill", dataset.color)
             .attr("x", 1)
             .attr("width", (d) => @scales.x(d.x.getTime() + d.dx) - @scales.x(d.x) - 1)
             .attr("transform", (d) => "translate(" + @scales.x(new Date(d.x)) + ",-" + y(d.length) + ")")
@@ -414,12 +418,14 @@ class TimeSlider
             if bin.length
                 names = bin.filter((r) -> r[2] && (r[2].name || r[2].id))
                   .map((r) -> (r[2].name || r[2].id))
+                tooltips = bin.map(@tooltipFormatter)
+                    .filter((tooltip) -> !!(tooltip))
 
-                if names.length
+                if tooltips.length
                     @tooltip.transition()
                         .duration(200)
                         .style("opacity", .9)
-                    @tooltip.html(names.join("<br>"))
+                    @tooltip.html(tooltips.join("<br>"))
                         .style("left", (d3.event.pageX) + "px")
                         .style("top", (d3.event.pageY - 28) + "px")
           )
@@ -824,6 +830,8 @@ class TimeSlider
     setRecordFilter: (@recordFilter) ->
         @redraw()
         true
+
+    setTooltipFormatter: (@tooltipFormatter) ->
 
 
 # Dataset utility class for internal use only
