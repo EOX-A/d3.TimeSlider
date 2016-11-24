@@ -788,6 +788,7 @@ class TimeSlider
                 @redraw()
         )
 
+        .each('end', => @reloadDataset(dataset) for dataset of @datasets)
         true
 
     # reset the zoom to the initial domain
