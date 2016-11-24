@@ -17,7 +17,6 @@ class EOxServerWPSSource
             ]
             .get (error, rows) =>
                 if not error
-                    console.log rows
                     callback(rows)
 
 module.exports = EOxServerWPSSource
