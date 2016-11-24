@@ -165,6 +165,14 @@ details are:
   - `start`: the new start time of the selection
   - `end`: the new end time of the selection
 
+### `displayChanged`
+
+This event is emitted after zooming or panning the timeslider. The
+details are:
+
+  - `start`: the new start time of the viewable interval
+  - `end`: the new end time of the viewable interval
+
 ### `recordMouseover` / `recordMouseout` / `recordClicked`
 
 These events are raised when a record is hovered, stopped hovering or clicked.

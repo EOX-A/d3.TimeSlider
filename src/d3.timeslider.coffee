@@ -173,16 +173,10 @@ class TimeSlider
                 @selectionConstraint = null
 
                 # dispatch the events
-                @element.dispatchEvent(
-                    new CustomEvent('selectionChanged', {
-                        detail: {
-                            start: @brush.extent()[0],
-                            end: @brush.extent()[1]
-                        }
-                        bubbles: true,
-                        cancelable: true
-                    })
-                )
+                @dispatch('selectionChanged', {
+                    start: @brush.extent()[0],
+                    end: @brush.extent()[1]
+                })
 
                 # hide the brush tooltips
                 if @brushTooltip
@@ -254,6 +248,13 @@ class TimeSlider
                 else
                     [start, end] = @scales.x.domain();
                     @center(start, end)
+            )
+            .on('zoomend', =>
+                display = @scales.x.domain()
+                @dispatch('displayChanged', {
+                    start: display[0],
+                    end: display[1]
+                })
             )
         @svg.call(@options.zoom)
 
@@ -336,20 +337,12 @@ class TimeSlider
         )
         .on("mouseover", (record) =>
             params = record[2]
-            @element.dispatchEvent(
-                new CustomEvent('recordMouseover', {
-                    detail: {
-                        dataset: dataset.id,
-                        start: record[0],
-                        end: record[1],
-                        params: params
-                    }
-                    bubbles: true,
-                    cancelable: true
-                })
-            )
-
-            if params and (params.id or params.name)
+            @dispatch('recordMouseover', {
+                dataset: dataset.id,
+                start: record[0],
+                end: record[1],
+                params: params
+            })
             tooltip = @tooltipFormatter(record)
             if tooltip
                 @tooltip.transition()
@@ -360,35 +353,23 @@ class TimeSlider
                     .style("top", (d3.event.pageY - 28) + "px")
         )
         .on("mouseout", (record) =>
-            @element.dispatchEvent(
-                new CustomEvent('recordMouseout', {
-                    detail: {
-                        dataset: dataset.id,
-                        start: record[0],
-                        end: record[1],
-                        params: record[2]
-                    }
-                    bubbles: true,
-                    cancelable: true
-                })
-            )
+            @dispatch('recordMouseout', {
+                dataset: dataset.id,
+                start: record[0],
+                end: record[1],
+                params: record[2]
+            })
             @tooltip.transition()
                 .duration(500)
                 .style("opacity", 0)
         )
         .on('click', (record) =>
-            @element.dispatchEvent(
-                new CustomEvent('recordClicked', {
-                    detail: {
-                        dataset: dataset.id,
-                        start: record[0],
-                        end: record[1],
-                        params: record[2]
-                    }
-                    bubbles: true,
-                    cancelable: true
-                })
-            )
+            @dispatch('recordClicked', {
+                dataset: dataset.id,
+                start: record[0],
+                end: record[1],
+                params: record[2]
+            })
         )
 
     setupBin: (binElement, dataset, y) ->
@@ -401,23 +382,15 @@ class TimeSlider
             .attr("height", (d) -> y(d.length))
 
         binElement
-          .on("mouseover", (bin) =>
-            @element.dispatchEvent(
-                new CustomEvent('binMouseover', {
-                    detail: {
-                        dataset: dataset.id,
-                        start: bin.x,
-                        end: new Date(bin.x.getTime() + bin.dx),
-                        bin: bin
-                    }
-                    bubbles: true,
-                    cancelable: true
-                })
-            )
+        .on("mouseover", (bin) =>
+            @dispatch('binMouseover', {
+                dataset: dataset.id,
+                start: bin.x,
+                end: new Date(bin.x.getTime() + bin.dx),
+                bin: bin
+            })
 
             if bin.length
-                names = bin.filter((r) -> r[2] && (r[2].name || r[2].id))
-                  .map((r) -> (r[2].name || r[2].id))
                 tooltips = bin.map(@tooltipFormatter)
                     .filter((tooltip) -> !!(tooltip))
 
@@ -428,38 +401,26 @@ class TimeSlider
                     @tooltip.html(tooltips.join("<br>"))
                         .style("left", (d3.event.pageX) + "px")
                         .style("top", (d3.event.pageY - 28) + "px")
-          )
-          .on("mouseout", (bin) =>
-            @element.dispatchEvent(
-                new CustomEvent('binMouseout', {
-                    detail: {
-                        dataset: dataset.id,
-                        start: bin.x,
-                        end: new Date(bin.x.getTime() + bin.dx),
-                        bin: bin
-                    }
-                    bubbles: true,
-                    cancelable: true
-                })
-            )
+        )
+        .on("mouseout", (bin) =>
+            @dispatch('binMouseout', {
+                dataset: dataset.id,
+                start: bin.x,
+                end: new Date(bin.x.getTime() + bin.dx),
+                bin: bin
+            })
             @tooltip.transition()
                 .duration(500)
                 .style("opacity", 0)
-          )
-          .on('click', (bin) =>
-            @element.dispatchEvent(
-                new CustomEvent('binClicked', {
-                    detail: {
-                        dataset: dataset.id,
-                        start: bin.x,
-                        end: new Date(bin.x.getTime() + bin.dx),
-                        bin: bin
-                    }
-                    bubbles: true,
-                    cancelable: true
-                })
-            )
-          )
+        )
+        .on('click', (bin) =>
+            @dispatch('binClicked', {
+                dataset: dataset.id,
+                start: bin.x,
+                end: new Date(bin.x.getTime() + bin.dx),
+                bin: bin
+            })
+        )
 
     drawRanges: (datasetElement, dataset, records) ->
         datasetElement.selectAll('rect').remove()
@@ -642,6 +603,15 @@ class TimeSlider
             dataset.setRecords(finalRecords)
             dataset.setPaths(finalPaths)
             @redrawDataset(datasetId)
+        )
+
+    dispatch: (name, detail) ->
+        @element.dispatchEvent(
+            new CustomEvent(name, {
+                detail: detail,
+                bubbles: true,
+                cancelable: true
+            })
         )
 
 
