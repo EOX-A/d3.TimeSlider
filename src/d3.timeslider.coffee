@@ -330,12 +330,10 @@ class TimeSlider
                 offheight = @svg[0][0].parentNode.offsetHeight
 
             @tooltipBrushMin.html(@simplifyDate(@brush.extent()[0]))
-                .style("left", (@scales.x(@brush.extent()[0])+@brushTooltipOffset[0]) + "px")
-                .style("top", (offheight + @brushTooltipOffset[1]) + "px")
-
             @tooltipBrushMax.html(@simplifyDate(@brush.extent()[1]))
-                .style("left", (@scales.x(@brush.extent()[1])+@brushTooltipOffset[0]) + "px")
-                .style("top", (offheight + @brushTooltipOffset[1] + 20) + "px")
+
+            centerTooltipOn(@tooltipBrushMin, d3.select(@element).select('g.brush .extent')[0][0], 'left', [0, -20])
+            centerTooltipOn(@tooltipBrushMax, d3.select(@element).select('g.brush .extent')[0][0], 'right')
 
         brushExtent = d3.select(@element).select('g.brush .extent')
         if parseFloat(brushExtent.attr('width')) < 1
@@ -675,11 +673,17 @@ class TimeSlider
     offsetDate = (date, seconds) ->
         return new Date(date.getTime() + seconds * 1000)
 
-    centerTooltipOn = (tooltip, target) ->
+    centerTooltipOn = (tooltip, target, dir = 'center', offset = [0, 0]) ->
         rect = target.getBoundingClientRect()
+        if dir == 'left'
+            xOff = rect.left
+        else if dir == 'right'
+            xOff = rect.right
+        else
+            xOff = rect.left + rect.width / 2
         tooltip
-            .style('left', rect.left + rect.width / 2 - tooltip[0][0].getBoundingClientRect().width / 2 + "px")
-            .style("top", (rect.top - 28) + "px")
+            .style('left', xOff - tooltip[0][0].getBoundingClientRect().width / 2 + offset[0] + "px")
+            .style("top", (rect.top - 28) + offset[1] + "px")
 
     ###
     ## Public API
