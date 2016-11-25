@@ -62,9 +62,17 @@ When the function returns a falsy value, then no tooltip is displayed.
 
 When set, the viewable interval is constrained to the `domain`.
 
-### `selectionLimit` - `Number`
+### `selectionLimit` - `String|Number`
 
-When set, this limits the maximum interval in seconds allowed to brush.
+When set, this limits the maximum interval allowed to brush. This can either be
+a number (number of seconds) or a
+[ISO8601 duration](https://en.wikipedia.org/wiki/ISO_8601#Durations).
+
+### `displayLimit` - `String|Number`
+
+When set, this limits the maximum interval allowed to display. This can either be
+a number (number of seconds) or a
+[ISO8601 duration](https://en.wikipedia.org/wiki/ISO_8601#Durations).
 
 ### `recordFilter` - `function`
 
@@ -192,6 +200,43 @@ hovering or clicked. The details always include:
   - `start`: the start time of the histogram bin
   - `end`: the end time of the histogram bin
   - `bin`: the array of records in that bin
+
+## Available sources
+
+### EO-WCS - `EOWCSSource`
+
+This source uses [libcoverage.js](https://github.com/EOX-A/libcoverage.js) to
+send `DescribeEOCoverageSet` requests to the specified EO-WCS server. The result
+is parsed for all entailed coverages and their respective start/end times. The
+record params include the coverages EOID which is used as the `id` for display
+in the tooltip and the events.
+
+This source allows the following parameters:
+
+  - `url`: The URL of the WCS server
+  - `eoid`: The EO-ID of the collection or coverage to perform the request on
+
+### EOxServer WPS - `EOxServerWPSSource`
+
+This source is specialized to access the `getTimeData` Process, that ships with
+EOxServer. The response format is a CSV file, which is parsed. Sources of this
+type accept the following parameters:
+
+  - `url`: The URL of the EOxServer WPS instance.
+  - `eoid`: The ID of the collection to query.
+
+### WMS - `WMSSource`
+
+The `WMSSource` fetches the WMS Capabilities of a server to parse the `time`
+dimension of a specific layer to produce the time-marks. Capabilities responses
+are globally cached. The source accepts the following parameters:
+
+  - `url`: The URL of the WMS endpoint.
+  - `layer`: The layer name.
+
+This source is somewhat limited by the underlying protocol and is thus not able
+to subset the records on a request basis and cannot provide additional metadata
+(such as record ID) to display as a tooltip or provide in timeslider events.
 
 ## Example
 An example on how to use it is provided below.
