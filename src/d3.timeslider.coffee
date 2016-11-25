@@ -68,22 +68,32 @@ class TimeSlider
             @options.width = @svg[0][0].clientWidth
             @options.height = @svg[0][0].clientHeight
 
-        @options.selectionLimit ||= null
+        @options.selectionLimit = if @options.selectionLimit then parseDuration(@options.selectionLimit) else null
+
         @options.brush ||= {}
         @options.brush.start ||= @options.start
         if @options.selectionLimit
-            @options.brush.end ||= new Date(@options.brush.start.getTime() + @options.selectionLimit * 1000)
+            @options.brush.end ||= offsetDate(@options.brush.start, @options.selectionLimit)
         else
             @options.brush.end ||= new Date(new Date(@options.brush.start).setDate(@options.brush.start.getDate() + 3))
 
         @selectionConstraint = [
-            new Date(@options.brush.start.getTime() - @options.selectionLimit * 1000),
-            new Date(@options.brush.end.getTime() + @options.selectionLimit * 1000)
+            offsetDate(@options.brush.start, -@options.selectionLimit),
+            offsetDate(@options.brush.end, @options.selectionLimit)
         ]
 
+        domain = @options.domain
+
+        @options.displayLimit = if @options.displayLimit then parseDuration(@options.displayLimit) else null
         @options.display ||= {}
-        @options.display.start ||= @options.domain.start
-        @options.display.end ||= @options.domain.end
+        if not @options.display.start and @options.displayLimit
+            @options.display.start = offsetDate(domain.end, -displayLimit)
+        else
+            @options.display.start ||= domain.start
+        @options.display.end ||= domain.end
+
+        if @options.displayLimit != null and (@options.display.end - @options.display.start) > @options.displayLimit * 1000
+            @options.display.start = offsetDate(@options.display.end, -@options.displayLimit)
 
         @options.debounce ||= 50
         @options.ticksize ||= 3
@@ -95,7 +105,6 @@ class TimeSlider
         @datasets = {}
         @ordinal = 0
 
-        @timetickDate = false
         @simplifyDate = d3.time.format.utc("%d.%m.%Y - %H:%M:%S")
 
         customFormats = d3.time.format.utc.multi([
@@ -194,15 +203,15 @@ class TimeSlider
                     if @selectionConstraint == null
                         [low, high] = @brush.extent()
                         @selectionConstraint = [
-                            new Date(high.getTime() - @options.selectionLimit * 1000),
-                            new Date(low.getTime() + @options.selectionLimit * 1000)
+                            offsetDate(high, - @options.selectionLimit),
+                            offsetDate(low, @options.selectionLimit)
                         ]
                     else
                         if d3.event.mode == "move"
                             [low, high] = @brush.extent()
                             @selectionConstraint = [
-                                new Date(high.getTime() - @options.selectionLimit * 1000),
-                                new Date(low.getTime() + @options.selectionLimit * 1000)
+                                offsetDate(high, - @options.selectionLimit),
+                                offsetDate(low, @options.selectionLimit)
                             ]
                         @checkBrush()
 
@@ -243,13 +252,29 @@ class TimeSlider
             .x(@scales.x)
             .size([@options.width, @options.height])
             .scaleExtent([minScale, Infinity])
+            .on('zoomstart', =>
+                @prevScale2 = @options.zoom.scale()
+                @prevDomain = @scales.x.domain()
+            )
             .on('zoom', =>
                 if @brushing
                     @options.zoom.scale(@prevScale)
                     @options.zoom.translate(@prevTranslate)
                 else
-                    [start, end] = @scales.x.domain();
+                    if @options.displayLimit != null and d3.event.scale < @prevScale2
+                        [low, high] = @scales.x.domain()
+
+                        if (high.getTime() - low.getTime()) > @options.displayLimit * 1000
+                            [start, end] = @prevDomain
+                        else
+                            [start, end] = @scales.x.domain()
+
+                    else
+                        [start, end] = @scales.x.domain()
+
                     @center(start, end, false)
+                    @prevScale2 = @options.zoom.scale()
+                    @prevDomain = @scales.x.domain()
             )
             .on('zoomend', =>
                 display = @scales.x.domain()
@@ -347,7 +372,7 @@ class TimeSlider
                 end: record[1],
                 params: params
             })
-            tooltip = @tooltipFormatter(record)
+            tooltip = @tooltipFormatter(record, dataset)
             if tooltip
                 @tooltip.transition()
                     .duration(200)
@@ -618,6 +643,23 @@ class TimeSlider
             })
         )
 
+    parseDuration = (duration) ->
+        if not Number.isNaN(parseFloat(duration))
+            return parseFloat(duration)
+
+        matches = duration.match(/^P(?:([0-9]+)Y|)?(?:([0-9]+)M|)?(?:([0-9]+)D|)?T?(?:([0-9]+)H|)?(?:([0-9]+)M|)?(?:([0-9]+)S|)?$/)
+
+        if matches
+            years = (parseInt(matches[1]) || 0) # years
+            months = (parseInt(matches[2]) || 0) + years * 12 # months
+            days = (parseInt(matches[3]) || 0) + months * 30 # days
+            hours = (parseInt(matches[4]) || 0) + days * 24 # hours
+            minutes = (parseInt(matches[5]) || 0) + hours * 60 # minutes
+            return (parseInt(matches[6]) || 0) + minutes * 60 # seconds
+
+    offsetDate = (date, seconds) ->
+        return new Date(date.getTime() + seconds * 1000)
+
 
     ###
     ## Public API
@@ -751,6 +793,7 @@ class TimeSlider
         end = new Date(end)
         [ start, end ] = [ end, start ] if end < start
 
+        # constrain to domain, if set
         diff = end - start
         if @options.constrain && start < @options.domain.start
             start = @options.domain.start
@@ -760,6 +803,10 @@ class TimeSlider
             end = @options.domain.end
             newStart = new Date(end.getTime() - diff)
             start = if newStart > @options.domain.start then newStart else @options.domain.start
+
+        # constrain to displayLimit
+        if @options.displayLimit != null and (end - start) > @options.displayLimit * 1000
+            start = offsetDate(end, -@options.displayLimit)
 
         @options.zoom.scale((@options.display.end - @options.display.start) / (end - start))
         @options.zoom.translate([ @options.zoom.translate()[0] - @scales.x(start), 0 ])
@@ -787,7 +834,6 @@ class TimeSlider
                 # redraw
                 @redraw()
         )
-
         .each('end', => @reloadDataset(dataset) for dataset of @datasets)
         true
 
