@@ -456,38 +456,45 @@ class TimeSlider
         )
 
     drawRanges: (datasetElement, dataset, records) ->
-        datasetElement.selectAll('rect').remove()
+        rect = (elem) =>
+            elem.attr('class', 'record')
+                .attr('x', (record) => @scales.x(new Date(record[0])) )
+                .attr('y', - (@options.ticksize + 3) * dataset.index + -(@options.ticksize-2) )
+                .attr('width', (record) => @scales.x(new Date(record[1])) - @scales.x(new Date(record[0])) )
+                .attr('height', (@options.ticksize-2))
+                .attr('stroke', d3.rgb(dataset.color).darker())
+                .attr('stroke-width', 1)
 
-        r = datasetElement.selectAll('rect')
+        r = datasetElement.selectAll('rect.record')
             .data(records)
+            .call(rect)
 
         r.enter().append('rect')
-            .attr('x', (record) => @scales.x(new Date(record[0])) )
-            .attr('y', - (@options.ticksize + 3) * dataset.index + -(@options.ticksize-2) )
-            .attr('width', (record) => @scales.x(new Date(record[1])) - @scales.x(new Date(record[0])) )
-            .attr('height', (@options.ticksize-2))
-            .attr('stroke', d3.rgb(dataset.color).darker())
-            .attr('stroke-width', 1)
+            .call(rect)
             .call((recordElement) => @setupRecord(recordElement, dataset))
 
         r.exit().remove()
 
     drawPoints: (datasetElement, dataset, records) ->
-        datasetElement.selectAll('circle').remove()
-        p = datasetElement.selectAll('circle')
+        circle = (elem) =>
+            elem.attr('class', 'record')
+                .attr('cx', (a) =>
+                    if Array.isArray(a)
+                        return @scales.x(new Date(a[0]))
+                    else
+                        return @scales.x(new Date(a))
+                )
+                .attr('cy', - (@options.ticksize + 3) * dataset.index - (@options.ticksize - 2) / 2)
+                .attr('stroke', d3.rgb(dataset.color).darker())
+                .attr('stroke-width', 1)
+                .attr('r', @options.ticksize / 2)
+
+        p = datasetElement.selectAll('circle.record')
             .data(records)
+            .call(circle)
 
         p.enter().append('circle')
-            .attr('cx', (a) =>
-                if Array.isArray(a)
-                    return @scales.x(new Date(a[0]))
-                else
-                    return @scales.x(new Date(a))
-            )
-            .attr('cy', - (@options.ticksize + 3) * dataset.index - (@options.ticksize - 2) / 2)
-            .attr('stroke', d3.rgb(dataset.color).darker())
-            .attr('stroke-width', 1)
-            .attr('r', @options.ticksize / 2)
+            .call(circle)
             .call((recordElement) => @setupRecord(recordElement, dataset))
 
         p.exit().remove()
@@ -586,20 +593,25 @@ class TimeSlider
         if not dataset
             return
 
-        records = dataset.getRecords()
+        [low, high] = @scales.x.domain()
+
+        records = (dataset.getRecords() || [])
+            .filter((r) -> r[0] <= high and r[1] >= low)
         paths = dataset.getPaths()
         index = dataset.index
         color = dataset.color
 
         if paths and paths.length
             @drawPaths(dataset.element, dataset, paths)
-        else if records and records.length
-            data = records.map((record) =>
-                new Date(record[0] + (record[1] - record[0]) / 2)
-            )
-            if dataset.histogram
+        else
+            if dataset.histogramThreshold? and records.length >= dataset.histogramThreshold
+                dataset.element.selectAll('.record').remove()
+                data = records.map((record) =>
+                    new Date(record[0] + (record[1] - record[0]) / 2)
+                )
                 @drawHistogram(dataset.element, dataset, records)
             else
+                dataset.element.selectAll('.bin').remove()
                 points = records.filter((record) =>
                     (@scales.x(new Date(record[1])) - @scales.x(new Date(record[0]))) < 5
                 )
@@ -759,7 +771,7 @@ class TimeSlider
             debounceTime: @options.debounce,
             ordinal: @ordinal,
             element: element,
-            histogram: definition.histogram
+            histogramThreshold: definition.histogramThreshold
         })
 
         @reloadDataset(id)
@@ -864,7 +876,7 @@ class TimeSlider
 # Dataset utility class for internal use only
 class Dataset
     constructor: (options) ->
-        { @id,  @color, @source, @sourceParams, @index, @records, @paths, @lineplot, @ordinal, @element, @histogram } = options
+        { @id,  @color, @source, @sourceParams, @index, @records, @paths, @lineplot, @ordinal, @element, @histogramThreshold } = options
         @syncDebounced = debounce(@sync, options.debounceTime)
 
     getSource: ->
