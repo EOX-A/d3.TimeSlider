@@ -30,14 +30,14 @@ class TimeSlider
         @brushTooltipOffset = [30, 20]
 
         @tooltip = d3.select(@element).append("div")
-            .attr("class", "tooltip")
+            .attr("class", "timeslider-tooltip")
             .style("opacity", 0)
 
         @tooltipBrushMin = d3.select(@element).append("div")
-            .attr("class", "tooltip")
+            .attr("class", "timeslider-tooltip")
             .style("opacity", 0)
         @tooltipBrushMax = d3.select(@element).append("div")
-            .attr("class", "tooltip")
+            .attr("class", "timeslider-tooltip")
             .style("opacity", 0)
 
         @tooltipFormatter = @options.tooltipFormatter || (record) -> record[2]?.id || record[2]?.name
