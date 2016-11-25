@@ -378,12 +378,11 @@ class TimeSlider
             })
             tooltip = @tooltipFormatter(record, dataset)
             if tooltip
-                @tooltip.transition()
+                @tooltip.html(tooltip)
+                    .transition()
                     .duration(200)
                     .style("opacity", .9)
-                @tooltip.html(tooltip)
-                    .style("left", (d3.event.pageX) + "px")
-                    .style("top", (d3.event.pageY - 28) + "px")
+                centerTooltipOn(@tooltip, d3.event.target)
         )
         .on("mouseout", (record) =>
             @dispatch('recordMouseout', {
@@ -428,12 +427,12 @@ class TimeSlider
                     .filter((tooltip) -> !!(tooltip))
 
                 if tooltips.length
-                    @tooltip.transition()
+                    console.log d3.event
+                    @tooltip.html(tooltips.join("<br>"))
+                        .transition()
                         .duration(200)
                         .style("opacity", .9)
-                    @tooltip.html(tooltips.join("<br>"))
-                        .style("left", (d3.event.pageX) + "px")
-                        .style("top", (d3.event.pageY - 28) + "px")
+                    centerTooltipOn(@tooltip, d3.event.target)
         )
         .on("mouseout", (bin) =>
             @dispatch('binMouseout', {
@@ -676,6 +675,11 @@ class TimeSlider
     offsetDate = (date, seconds) ->
         return new Date(date.getTime() + seconds * 1000)
 
+    centerTooltipOn = (tooltip, target) ->
+        rect = target.getBoundingClientRect()
+        tooltip
+            .style('left', rect.left + rect.width / 2 - tooltip[0][0].getBoundingClientRect().width / 2 + "px")
+            .style("top", (rect.top - 28) + "px")
 
     ###
     ## Public API
