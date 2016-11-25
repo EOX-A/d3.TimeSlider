@@ -337,6 +337,10 @@ class TimeSlider
                 .style("left", (@scales.x(@brush.extent()[1])+@brushTooltipOffset[0]) + "px")
                 .style("top", (offheight + @brushTooltipOffset[1] + 20) + "px")
 
+        brushExtent = d3.select(@element).select('g.brush .extent')
+        if parseFloat(brushExtent.attr('width')) < 1
+            brushExtent.attr('width', 1)
+
 
         # repaint the datasets
         # First paint lines and ticks
