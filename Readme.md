@@ -87,7 +87,8 @@ An array of dataset definitions (objects) with the following layout
  - `id`: The ID of the dataset. This is used in events and callbacks
  - `color`: The color to display the dataset. Anything possible for CSS works here
  - `lineplot`: Whether this dataset will be displayed as a line
- - `histogram`: Whether this dataset will be displayed in a quantized manner
+ - `histogramThreshold`: Sets the threshold, when this dataset will be displayed
+   in a quantized manner.
  - `sourceParams`: Anything you want to pass to the source function.
  - `records`: The records for this dataset. When the records are set this way,
    the dataset is static, and does not change.
