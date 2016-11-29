@@ -87,7 +87,7 @@ class TimeSlider
         @options.displayLimit = if @options.displayLimit then parseDuration(@options.displayLimit) else null
         @options.display ||= {}
         if not @options.display.start and @options.displayLimit
-            @options.display.start = offsetDate(domain.end, -displayLimit)
+            @options.display.start = offsetDate(domain.end, -@options.displayLimit)
         else
             @options.display.start ||= domain.start
         @options.display.end ||= domain.end
