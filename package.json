@@ -47,5 +47,8 @@
   },
   "browserify-shim": {
       "d3": "global:d3"
+  },
+  "scripts": {
+    "prepublish": "grunt"
   }
 }

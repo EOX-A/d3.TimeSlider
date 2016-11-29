@@ -1,0 +1,10 @@
+# ignore directories for build and dependencies
+/dependencies/*
+/release
+
+# OS X specific files
+.DS_Store
+
+# Grunt
+/node_modules/
+
