@@ -425,7 +425,6 @@ class TimeSlider
                     .filter((tooltip) -> !!(tooltip))
 
                 if tooltips.length
-                    console.log d3.event
                     @tooltip.html(tooltips.join("<br>"))
                         .transition()
                         .duration(200)
@@ -675,6 +674,7 @@ class TimeSlider
 
     centerTooltipOn = (tooltip, target, dir = 'center', offset = [0, 0]) ->
         rect = target.getBoundingClientRect()
+        tooltipRect = tooltip[0][0].getBoundingClientRect()
         if dir == 'left'
             xOff = rect.left
         else if dir == 'right'
@@ -682,8 +682,8 @@ class TimeSlider
         else
             xOff = rect.left + rect.width / 2
         tooltip
-            .style('left', xOff - tooltip[0][0].getBoundingClientRect().width / 2 + offset[0] + "px")
-            .style("top", (rect.top - 28) + offset[1] + "px")
+            .style('left', xOff - tooltipRect.width / 2 + offset[0] + "px")
+            .style('top', (rect.top - tooltipRect.height) + offset[1] + "px")
 
     ###
     ## Public API
