@@ -14,21 +14,38 @@
   "bugs": {
     "url": "https://github.com/EOX-A/d3.TimeSlider/issues"
   },
+  "license": "MIT",
   "licenses": [
     {
       "type": "MIT",
       "url": "https://github.com/EOX-A/d3.TimeSlider/blob/master/License"
     }
   ],
+  "main": "d3.timeslider.coffee",
   "devDependencies": {
+    "bootstrap": "^3.3.6",
+    "browserify-shim": "^3.8.12",
+    "coffeeify": "^2.0.1",
     "grunt": "~0.4.1",
-    "grunt-contrib-coffee": "~0.7.0",
-    "grunt-contrib-uglify": "~0.2.2",
-    "grunt-coffeelint": "~0.0.6",
-    "grunt-contrib-less": "~0.6.4",
-    "grunt-contrib-watch": "~0.4.4",
+    "grunt-browserify": "^5.0.0",
     "grunt-bump": "~0.0.11",
+    "grunt-coffeelint": "~0.0.6",
     "grunt-contrib-clean": "~0.5.0",
-    "grunt-contrib-compress": "~0.5.2"
+    "grunt-contrib-coffee": "~0.7.0",
+    "grunt-contrib-compress": "~0.5.2",
+    "grunt-contrib-less": "~0.6.4",
+    "grunt-contrib-uglify": "^0.2.7",
+    "grunt-contrib-watch": "~0.4.4"
+  },
+  "dependencies": {
+    "d3": "^3.5.17",
+    "debounce": "^1.0.0",
+    "libcoverage": "^0.1.10"
+  },
+  "browserify": {
+      "transform": [ "browserify-shim" ]
+  },
+  "browserify-shim": {
+      "d3": "global:d3"
   }
 }
