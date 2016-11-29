@@ -1,6 +1,6 @@
 {
   "name": "D3.TimeSlider",
-  "version": "0.0.24",
+  "version": "1.0.0",
   "description": "A D3.js based time slider",
   "homepage": "https://github.com/EOX-A/d3.TimeSlider",
   "author": {
@@ -43,10 +43,12 @@
     "libcoverage": "^0.1.10"
   },
   "browserify": {
-      "transform": [ "browserify-shim" ]
+    "transform": [
+      "browserify-shim"
+    ]
   },
   "browserify-shim": {
-      "d3": "global:d3"
+    "d3": "global:d3"
   },
   "scripts": {
     "prepublish": "grunt"
