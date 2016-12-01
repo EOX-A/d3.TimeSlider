@@ -41,6 +41,10 @@ class TimeSlider
             .style("opacity", 0)
 
         @tooltipFormatter = @options.tooltipFormatter || (record) -> record[2]?.id || record[2]?.name
+        @binTooltipFormatter = @options.binTooltipFormatter || (bin) =>
+            bin.map(@tooltipFormatter)
+                .filter((tooltip) -> tooltip?)
+                .join("<br>")
 
         # used for show()/hide()
         @originalDisplay = @element.style.display
@@ -421,11 +425,9 @@ class TimeSlider
             })
 
             if bin.length
-                tooltips = bin.map(@tooltipFormatter)
-                    .filter((tooltip) -> !!(tooltip))
-
-                if tooltips.length
-                    @tooltip.html(tooltips.join("<br>"))
+                tooltip = @binTooltipFormatter(bin)
+                if tooltip.length
+                    @tooltip.html(tooltip)
                         .transition()
                         .duration(200)
                         .style("opacity", .9)
@@ -880,12 +882,14 @@ class TimeSlider
 
     setTooltipFormatter: (@tooltipFormatter) ->
 
+    setBinTooltipFormatter: (@binTooltipFormatter) ->
 
 # Dataset utility class for internal use only
 class Dataset
     constructor: (options) ->
         { @id,  @color, @source, @sourceParams, @index, @records, @paths, @lineplot, @ordinal, @element, @histogramThreshold } = options
         @syncDebounced = debounce(@sync, options.debounceTime)
+        @currentSyncState = 0
 
     getSource: ->
         @source
@@ -901,14 +905,19 @@ class Dataset
     getPaths: -> @paths
 
     sync: (start, end, callback) ->
+        @currentSyncState += 1
+        syncState = @currentSyncState
+        fetched = (records, paths) =>
+            # only update the timeslider when the state is still valid
+            if syncState == @currentSyncState
+                callback(records, paths)
+
         # sources conforming to the Source interface
         if @source and typeof @source.fetch == "function"
-            @source.fetch start, end, @sourceParams, (records, paths) ->
-                callback(records, paths)
+            @source.fetch start, end, @sourceParams, fetched
         # sources that are functions
         else if typeof @source == "function"
-            @source start, end, @sourceParams, (records, paths) ->
-                callback(records, paths)
+            @source start, end, @sourceParams, fetched
         # no source, simply call the callback with the static records and paths
         else
             callback(@records, @paths)
