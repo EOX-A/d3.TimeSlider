@@ -58,6 +58,13 @@ property (in that order).
 
 When the function returns a falsy value, then no tooltip is displayed.
 
+### `binTooltipFormatter` - `function`
+
+This function is invoked when a tooltip is to be displayed for a histogram bin.
+It is passed the bin - an array of records (again an array of [start, end,
+params]). By default, the `tooltipFormatter` is invoked for each record and
+joined by a `<br>`.
+
 ### `constrain` - `boolean`
 
 When set, the viewable interval is constrained to the `domain`.
@@ -164,6 +171,10 @@ Set the `recordFilter`. See the options for details. Redraws.
 ### `setTooltipFormatter` - `function`
 
 Sets the tooltip formatting function.
+
+### `setBinTooltipFormatter` - `function`
+
+Sets the tooltip formatter for histogram bins.
 
 ## Events raised
 
