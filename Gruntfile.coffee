@@ -63,7 +63,7 @@ module.exports = (grunt) ->
       compile:
         files:
           'build/d3.timeslider.min.js': ['build/d3.timeslider.js']
-          'build/d3.timeslider.plugins.min.js': ['build/d3.timeslider.plugins.js']
+          # 'build/d3.timeslider.plugins.min.js': ['build/d3.timeslider.plugins.js']
     less:
       development:
         files:
@@ -92,6 +92,5 @@ module.exports = (grunt) ->
   }
 
   grunt.registerTask('lint', ['coffeelint'])
-  grunt.registerTask('default', ['clean:build', 'browserify', #'uglify',
-    'less:development'])
-  grunt.registerTask('release', ['clean:release', 'bump', 'coffee', 'uglify', 'less:production', 'compress:release'])
+  grunt.registerTask('default', ['clean:build', 'browserify', 'less:development'])
+  grunt.registerTask('release', ['clean:release', 'browserify', 'uglify', 'less:production', 'compress:release'])
