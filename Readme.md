@@ -104,7 +104,11 @@ An array of dataset definitions (objects) with the following layout
 
    The parameters are used for the `recordFilter` and to display the tooltip on
    the mouseover: either the `id` or `name` properties are used when available.
-
+ - `cacheRecords`: Use an internal cache to only request intervals that have not
+   been requested before.
+ - `cacheIdField`: Field to check the equality of records. This is necessary
+   when two intervals of records need to be merged. When not set, then the time
+   stamps of the records are used.
 
 ## Public API
 

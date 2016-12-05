@@ -626,7 +626,7 @@ class TimeSlider
         [ start, end ] = @scales.x.domain()
 
         # start the dataset synchronization
-        dataset.syncDebounced(start, end, (records, paths) =>
+        dataset.sync(start, end, (records, paths) =>
             finalRecords = []
             finalPaths = []
 
@@ -781,7 +781,8 @@ class TimeSlider
             debounceTime: @options.debounce,
             ordinal: @ordinal,
             element: element,
-            histogramThreshold: definition.histogramThreshold
+            histogramThreshold: definition.histogramThreshold,
+            cacheRecords: definition.cacheRecords
         })
 
         @reloadDataset(id)
@@ -884,12 +885,141 @@ class TimeSlider
 
     setBinTooltipFormatter: (@binTooltipFormatter) ->
 
+
+# cache for records and their respective intervals
+class RecordCache
+    constructor: (@idProperty) ->
+        if @idProperty
+            @predicate = (a, b) -> a[2][@idProperty] is b[2][@idProperty]
+        else
+            @predicate = (a, b) -> a[0] is b[0] and a[1] is b[1]
+        @clear()
+
+    # clear the cache
+    clear: () ->
+        @buckets = []
+
+    # add the interval with records to the cache. this can trigger a merge with
+    # buckets.
+    add: (start, end, records) ->
+        intersecting = @getIntersecting(start, end)
+        notIntersecting = @buckets
+            .filter(([startA, endA, ...]) -> not intersects([start, end], [startA, endA]))
+
+        low = start
+        high = end
+        combined = records
+
+        for [bucketStart, bucketEnd, bucketRecords] in intersecting
+            low = bucketStart if bucketStart < low
+            high = bucketEnd if bucketEnd > high
+            combined = merged(combined, bucketRecords, @predicate)
+        @buckets = notIntersecting
+        @buckets.push([low, high, combined])
+
+    # get the records for the given interval (can be of more than one bucket)
+    get: (start, end) ->
+        intersecting = @getIntersecting(start, end)
+        if intersecting.length == 0
+            return []
+
+        [first, others...] = intersecting
+        records = first[2]
+        for intersection in others
+            records = merged(records, intersection[2], @predicate)
+        return records
+
+    # fetch the source, but only the intervals that are required
+    fetch: (start, end, params, source, callback) ->
+        intersecting = @getIntersecting(start, end)
+        intervals = [[start, end],]
+        for bucket in intersecting
+            newIntervals = []
+            for interval in intervals
+                newIntervals = newIntervals.concat(subtract(interval, bucket))
+            intervals = newIntervals
+
+        if intervals.length
+            summaryCallback = after(intervals.length, () =>
+                callback(@get(start, end))
+            )
+
+            for [intStart, intEnd] in intervals
+                source(intStart, intEnd, params, (records, paths) =>
+                    @add(intStart, intEnd, records)
+                    summaryCallback()
+                )
+        else
+            # fill entire answer from cache
+            callback(@get(start, end))
+
+    getIntersecting: (start, end) ->
+        return @buckets
+            .filter(([startA, endA, ...]) ->
+                intersects([start, end], [startA, endA])
+            )
+
+    # check if intervals intersect
+    intersects = (a, b) ->
+        return a[0] <= b[1] and b[0] <= a[1]
+
+    # subtract one interval from another. returns a list of intervals
+    subtract = (a, b) ->
+        if not intersects(a, b)
+            # a: |----|
+            # b:        |----|
+            # o: |----|
+            return [a]
+        else if a[0] < b[0] and a[1] > b[1]
+            # a: |--------|
+            # b:    |--|
+            # =: |--|  |--|
+            return [
+                [ a[0], b[0], ],
+                [ b[1], a[1], ],
+            ]
+        else if a[0] < b[0]
+            # a: |--------|
+            # b:    |-------|
+            # =: |--|
+            return [[a[0], b[0],],]
+        else if a[1] > b[1]
+            # a:    |------|
+            # b: |------|
+            # =:        |--|
+            return [[b[1], a[1],],]
+        else
+            # a:   |--|
+            # b: |------|
+            # o:
+            return []
+
+    # merge two arrays of objects according to an equality predicate
+    merged = (a, b, predicate) ->
+        out = a[..]
+        for r2 in b
+            if not a.find((r1) -> predicate(r1, r2))
+                out.push(r2)
+        return out
+
+    # invoke final callback after n calls
+    after = (n, callback) ->
+        count = 0
+        return (args...) ->
+            ++count
+            if count == n
+                callback(args...)
+
+
 # Dataset utility class for internal use only
 class Dataset
-    constructor: (options) ->
-        { @id,  @color, @source, @sourceParams, @index, @records, @paths, @lineplot, @ordinal, @element, @histogramThreshold } = options
-        @syncDebounced = debounce(@sync, options.debounceTime)
+    constructor: ({ @id,  @color, @source, @sourceParams, @index, @records,
+                    @paths, @lineplot, @ordinal, @element, @histogramThreshold,
+                    cacheRecords, cacheIdField, debounceTime}) ->
+        @fetchDebounced = debounce(@doFetch, debounceTime)
         @currentSyncState = 0
+
+        @cache = new RecordCache(cacheIdField) if cacheRecords
 
     getSource: ->
         @source
@@ -904,7 +1034,10 @@ class Dataset
 
     getPaths: -> @paths
 
-    sync: (start, end, callback) ->
+    sync: (args...) ->
+        @fetchDebounced(args...)
+
+    doFetch: (start, end, callback) ->
         @currentSyncState += 1
         syncState = @currentSyncState
         fetched = (records, paths) =>
@@ -914,13 +1047,18 @@ class Dataset
 
         # sources conforming to the Source interface
         if @source and typeof @source.fetch == "function"
-            @source.fetch start, end, @sourceParams, fetched
+            source = (args...) => @source.fetch(args...)
         # sources that are functions
         else if typeof @source == "function"
-            @source start, end, @sourceParams, fetched
+            source = @source
         # no source, simply call the callback with the static records and paths
         else
-            callback(@records, @paths)
+            return callback(@records, @paths)
+
+        if @cache
+            @cache.fetch(start, end, @sourceParams, source, fetched)
+        else
+            source(start, end, @sourceParams, fetched)
 
 
 # Interface for a source
