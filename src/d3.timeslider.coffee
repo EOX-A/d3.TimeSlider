@@ -1,6 +1,6 @@
 d3 = require 'd3'
 debounce = require 'debounce'
-
+{ split, intersects, distance, merged, after, subtract } = require './utils.coffee'
 
 class TimeSlider
 
@@ -370,15 +370,24 @@ class TimeSlider
             else
                 "transparent"
         )
-        .on("mouseover", (record) =>
-            params = record[2]
-            @dispatch('recordMouseover', {
-                dataset: dataset.id,
-                start: record[0],
-                end: record[1],
-                params: params
-            })
-            tooltip = @tooltipFormatter(record, dataset)
+        .on('mouseover', (record) =>
+            if record.cluster
+                @dispatch('clusterMouseover', {
+                    dataset: dataset.id,
+                    start: record[0],
+                    end: record[1],
+                    records: record[2]
+                })
+                tooltip = @binTooltipFormatter(record[2], dataset)
+            else
+                @dispatch('recordMouseover', {
+                    dataset: dataset.id,
+                    start: record[0],
+                    end: record[1],
+                    params: record[2]
+                })
+                tooltip = @tooltipFormatter(record, dataset)
+
             if tooltip
                 @tooltip.html(tooltip)
                     .transition()
@@ -386,24 +395,40 @@ class TimeSlider
                     .style("opacity", .9)
                 centerTooltipOn(@tooltip, d3.event.target)
         )
-        .on("mouseout", (record) =>
-            @dispatch('recordMouseout', {
-                dataset: dataset.id,
-                start: record[0],
-                end: record[1],
-                params: record[2]
-            })
+        .on('mouseout', (record) =>
+            if record.cluster
+                @dispatch('clusterMouseout', {
+                    dataset: dataset.id,
+                    start: record[0],
+                    end: record[1],
+                    records: record[2]
+                })
+            else
+                @dispatch('recordMouseout', {
+                    dataset: dataset.id,
+                    start: record[0],
+                    end: record[1],
+                    params: record[2]
+                })
             @tooltip.transition()
                 .duration(500)
                 .style("opacity", 0)
         )
         .on('click', (record) =>
-            @dispatch('recordClicked', {
-                dataset: dataset.id,
-                start: record[0],
-                end: record[1],
-                params: record[2]
-            })
+            if record.cluster
+                @dispatch('clusterClicked', {
+                    dataset: dataset.id,
+                    start: record[0],
+                    end: record[1],
+                    records: record[2]
+                })
+            else
+                @dispatch('recordClicked', {
+                    dataset: dataset.id,
+                    start: record[0],
+                    end: record[1],
+                    params: record[2]
+                })
         )
 
     setupBin: (binElement, dataset, y) ->
@@ -610,12 +635,42 @@ class TimeSlider
                 @drawHistogram(dataset.element, dataset, records)
             else
                 dataset.element.selectAll('.bin').remove()
-                points = records.filter((record) =>
-                    (@scales.x(new Date(record[1])) - @scales.x(new Date(record[0]))) < 5
-                )
-                ranges = records.filter((record) =>
-                    (@scales.x(new Date(record[1])) - @scales.x(new Date(record[0]))) >= 5
-                )
+
+                x = @scales.x
+
+                drawAsPoint = (record, scale) ->
+                    return (scale(record[1]) - scale(record[0])) < 5
+
+                reducer = (acc, current, index) =>
+                    if drawAsPoint(current, x)
+                        [intersecting, nonIntersecting] = split(acc, (b) ->
+                            distance(current, b, x) <= 5
+                        )
+                    else
+                        [intersecting, nonIntersecting] = split(acc, (b) ->
+                            intersects(current, b)
+                        )
+                    if intersecting.length
+                        newBin = [
+                          d3.min(intersecting, (b) -> b[0]),
+                          d3.max(intersecting, (b) -> b[1]),
+                          intersecting.map((b) -> b[2]).reduce(((a, r) -> a.concat(r)), [])
+                        ]
+                        newBin[2].push(current)
+                        newBin.cluster = true
+                        nonIntersecting.push(newBin)
+                        return nonIntersecting
+                    else
+                        acc.push([current[0], current[1], [current]])
+                    return acc
+
+                if dataset.cluster
+                    records = records
+                        .reduce(reducer, [])
+                        .map((r) -> if r.cluster then r else [r[0], r[1], r[2][0][2]])
+
+                [points, ranges] = split(records, (r) -> drawAsPoint(r, x))
+
                 @drawRanges(dataset.element, dataset, ranges)
                 @drawPoints(dataset.element, dataset, points)
 
@@ -782,7 +837,8 @@ class TimeSlider
             ordinal: @ordinal,
             element: element,
             histogramThreshold: definition.histogramThreshold,
-            cacheRecords: definition.cacheRecords
+            cacheRecords: definition.cacheRecords,
+            cluster: definition.cluster
         })
 
         @reloadDataset(id)
@@ -959,63 +1015,12 @@ class RecordCache
                 intersects([start, end], [startA, endA])
             )
 
-    # check if intervals intersect
-    intersects = (a, b) ->
-        return a[0] <= b[1] and b[0] <= a[1]
-
-    # subtract one interval from another. returns a list of intervals
-    subtract = (a, b) ->
-        if not intersects(a, b)
-            # a: |----|
-            # b:        |----|
-            # o: |----|
-            return [a]
-        else if a[0] < b[0] and a[1] > b[1]
-            # a: |--------|
-            # b:    |--|
-            # =: |--|  |--|
-            return [
-                [ a[0], b[0], ],
-                [ b[1], a[1], ],
-            ]
-        else if a[0] < b[0]
-            # a: |--------|
-            # b:    |-------|
-            # =: |--|
-            return [[a[0], b[0],],]
-        else if a[1] > b[1]
-            # a:    |------|
-            # b: |------|
-            # =:        |--|
-            return [[b[1], a[1],],]
-        else
-            # a:   |--|
-            # b: |------|
-            # o:
-            return []
-
-    # merge two arrays of objects according to an equality predicate
-    merged = (a, b, predicate) ->
-        out = a[..]
-        for r2 in b
-            if not a.find((r1) -> predicate(r1, r2))
-                out.push(r2)
-        return out
-
-    # invoke final callback after n calls
-    after = (n, callback) ->
-        count = 0
-        return (args...) ->
-            ++count
-            if count == n
-                callback(args...)
-
 
 # Dataset utility class for internal use only
 class Dataset
     constructor: ({ @id,  @color, @source, @sourceParams, @index, @records,
                     @paths, @lineplot, @ordinal, @element, @histogramThreshold,
-                    cacheRecords, cacheIdField, debounceTime}) ->
+                    @cluster, cacheRecords, cacheIdField, debounceTime}) ->
         @fetchDebounced = debounce(@doFetch, debounceTime)
         @currentSyncState = 0
 

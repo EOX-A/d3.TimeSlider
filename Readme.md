@@ -116,6 +116,8 @@ An array of dataset definitions (objects) with the following layout
  - `cacheIdField`: Field to check the equality of records. This is necessary
    when two intervals of records need to be merged. When not set, then the time
    stamps of the records are used.
+ - `cluster`: Use a clustering algorithm to unify records that are so close to
+   each other that they cannot not be distinguished.
 
 ## Public API
 
@@ -206,6 +208,16 @@ The details always include:
   - `start`: the start time of the record
   - `end`: the end time of the record
   - `params`: optional record parameters when available
+
+### `clusterMouseover` / `clusterMouseout` / `clusterClicked`
+
+These events are raised when clustered records are hovered, stopped being
+hovering or clicked. The details always include:
+
+  - `dataset`: the dataset ID
+  - `start`: the start time of the cluster of records
+  - `end`: the end time of the cluster of records
+  - `records`: the array of records in that cluster
 
 ### `binMouseover` / `binMouseout` / `binClicked`
 
