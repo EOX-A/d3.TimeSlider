@@ -96,6 +96,7 @@ An array of dataset definitions (objects) with the following layout
  - `lineplot`: Whether this dataset will be displayed as a line
  - `histogramThreshold`: Sets the threshold, when this dataset will be displayed
    in a quantized manner.
+ - `histogramBinCount`: Sets the number of bins to use when drawing histograms.
  - `sourceParams`: Anything you want to pass to the source function.
  - `records`: The records for this dataset. When the records are set this way,
    the dataset is static, and does not change.

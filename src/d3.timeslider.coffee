@@ -523,7 +523,7 @@ class TimeSlider
         p.exit().remove()
 
     drawHistogram: (datasetElement, dataset, records) ->
-        ticks = @scales.x.ticks(10)
+        ticks = @scales.x.ticks(dataset.histogramBinCount or 20)
         dx = ticks[1] - ticks[0]
         ticks = [new Date(ticks[0].getTime() - dx)].concat(ticks).concat([new Date(ticks[ticks.length - 1].getTime() + dx)])
 
@@ -531,10 +531,11 @@ class TimeSlider
           .bins(ticks)
           .range(@scales.x.domain())
           .value((record) -> new Date(record[0] + (record[1] - record[0]) / 2))(records)
+          .filter((b) -> b.length)
 
         y = d3.scale.linear()
-          .domain([0, 5]) #d3.max(bins, (d) -> d.length)])
-          .range([0, @options.height - 29])
+          .domain([0, d3.max(bins, (d) -> d.length)])
+          .range([2, @options.height - 29])
           .clamp(true)
 
         bars = datasetElement.selectAll(".bin")
@@ -652,8 +653,8 @@ class TimeSlider
                         )
                     if intersecting.length
                         newBin = [
-                          d3.min(intersecting, (b) -> b[0]),
-                          d3.max(intersecting, (b) -> b[1]),
+                          new Date(d3.min(intersecting, (b) -> b[0])),
+                          new Date(d3.max(intersecting, (b) -> b[1])),
                           intersecting.map((b) -> b[2]).reduce(((a, r) -> a.concat(r)), [])
                         ]
                         newBin[2].push(current)
@@ -837,6 +838,7 @@ class TimeSlider
             ordinal: @ordinal,
             element: element,
             histogramThreshold: definition.histogramThreshold,
+            histogramBinCount: definition.histogramBinCount,
             cacheRecords: definition.cacheRecords,
             cluster: definition.cluster
         })
@@ -904,6 +906,21 @@ class TimeSlider
         start = new Date(params[0])
         end = new Date(params[1])
         [ start, end ] = [ end, start ] if end < start
+
+        # constrain to domain, if set
+        diff = end - start
+        if @options.constrain && start < @options.domain.start
+            start = @options.domain.start
+            newEnd = new Date(start.getTime() + diff)
+            end = if newEnd < @options.domain.end then newEnd else @options.domain.end
+        if @options.constrain && end > @options.domain.end
+            end = @options.domain.end
+            newStart = new Date(end.getTime() - diff)
+            start = if newStart > @options.domain.start then newStart else @options.domain.start
+
+        # constrain to displayLimit
+        if @options.displayLimit != null and (end - start) > @options.displayLimit * 1000
+            start = offsetDate(end, -@options.displayLimit)
 
         d3.transition().duration(750).tween('zoom', =>
             iScale = d3.interpolate(@options.zoom.scale(),
@@ -1020,7 +1037,8 @@ class RecordCache
 class Dataset
     constructor: ({ @id,  @color, @source, @sourceParams, @index, @records,
                     @paths, @lineplot, @ordinal, @element, @histogramThreshold,
-                    @cluster, cacheRecords, cacheIdField, debounceTime}) ->
+                    @histogramBinCount, @cluster, cacheRecords, cacheIdField,
+                    debounceTime}) ->
         @fetchDebounced = debounce(@doFetch, debounceTime)
         @currentSyncState = 0
 
