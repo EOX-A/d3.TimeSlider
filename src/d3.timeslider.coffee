@@ -503,6 +503,8 @@ class TimeSlider
             elem.attr('class', 'record')
                 .attr('cx', (a) =>
                     if Array.isArray(a)
+                        if a[0] != a[1]
+                            return @scales.x(new Date(a[0].getTime() + Math.abs(a[1] - a[0]) / 2))
                         return @scales.x(new Date(a[0]))
                     else
                         return @scales.x(new Date(a))
@@ -657,6 +659,8 @@ class TimeSlider
                           new Date(d3.max(intersecting, (b) -> b[1])),
                           intersecting.map((b) -> b[2]).reduce(((a, r) -> a.concat(r)), [])
                         ]
+                        newBin[0] = current[0] if current[0] < newBin[0]
+                        newBin[1] = current[1] if current[1] > newBin[1]
                         newBin[2].push(current)
                         newBin.cluster = true
                         nonIntersecting.push(newBin)
