@@ -1,6 +1,7 @@
 class EventEmitter
-    constructor: (@dispatchElement) ->
-        @listeners = d3.dispatch() # TODO
+    constructor: (@dispatchElement, events...) ->
+        if events.length
+            @listeners = d3.dispatch.apply(undefined, events)
 
     on: (args...) ->
         @listeners.on(args...)
@@ -9,3 +10,5 @@ class EventEmitter
         evt = document.createEvent('CustomEvent')
         evt.initCustomEvent(name, true, true, detail)
         (dispatchElement or @dispatchElement).dispatchEvent(evt)
+
+module.exports = EventEmitter

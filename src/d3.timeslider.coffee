@@ -1,6 +1,5 @@
 d3 = require 'd3'
-debounce = require 'debounce'
-{ split, intersects, distance, merged, after, subtract } = require './utils.coffee'
+{ split, intersects, distance, merged, after, subtract, parseDuration, offsetDate, centerTooltipOn } = require './utils.coffee'
 EventEmitter = require './event-emitter.coffee'
 
 RecordDataset = require './datasets/record-dataset.coffee'
@@ -14,6 +13,7 @@ class TimeSlider extends EventEmitter
     #  * TESTING
 
     constructor: (@element, @options = {}) ->
+        super(@element)
         @brushTooltip = @options.brushTooltip
         @brushTooltipOffset = [30, 20]
 
@@ -291,7 +291,6 @@ class TimeSlider extends EventEmitter
         if @options.display
             @center(@options.display.start, @options.display.end)
 
-        super(@element)
 
     ###
     ## Private API
@@ -368,94 +367,15 @@ class TimeSlider extends EventEmitter
                 d.getUTCMilliseconds() | d.getUTCSeconds() | d.getUTCMinutes() | d.getUTCHours()
             ))
 
-    # this function acually draws a dataset
-
-    redrawDataset: (datasetId) ->
-        dataset = @datasets[datasetId]
-        if not dataset
-            return
-
-        [low, high] = @scales.x.domain()
-
-        records = (dataset.getRecords() || [])
-            .filter((r) -> r[0] <= high and r[1] >= low)
-        paths = dataset.getPaths()
-        index = dataset.index
-        color = dataset.color
-
-        if paths and paths.length
-            @drawPaths(dataset.element, dataset, paths)
-        else
-            if dataset.histogramThreshold? and records.length >= dataset.histogramThreshold
-                dataset.element.selectAll('.record').remove()
-                data = records.map((record) =>
-                    new Date(record[0] + (record[1] - record[0]) / 2)
-                )
-                @drawHistogram(dataset.element, dataset, records)
-            else
-                dataset.element.selectAll('.bin').remove()
-
-                x = @scales.x
-
-                drawAsPoint = (record, scale) ->
-                    return (scale(record[1]) - scale(record[0])) < 5
-
-                reducer = (acc, current, index) =>
-                    if drawAsPoint(current, x)
-                        [intersecting, nonIntersecting] = split(acc, (b) ->
-                            distance(current, b, x) <= 5
-                        )
-                    else
-                        [intersecting, nonIntersecting] = split(acc, (b) ->
-                            intersects(current, b)
-                        )
-                    if intersecting.length
-                        newBin = [
-                          new Date(d3.min(intersecting, (b) -> b[0])),
-                          new Date(d3.max(intersecting, (b) -> b[1])),
-                          intersecting.map((b) -> b[2]).reduce(((a, r) -> a.concat(r)), [])
-                        ]
-                        newBin[0] = current[0] if current[0] < newBin[0]
-                        newBin[1] = current[1] if current[1] > newBin[1]
-                        newBin[2].push(current)
-                        newBin.cluster = true
-                        nonIntersecting.push(newBin)
-                        return nonIntersecting
-                    else
-                        acc.push([current[0], current[1], [current]])
-                    return acc
-
-                if dataset.cluster
-                    records = records
-                        .reduce(reducer, [])
-                        .map((r) -> if r.cluster then r else [r[0], r[1], r[2][0][2]])
-
-                [points, ranges] = split(records, (r) -> drawAsPoint(r, x))
-
-                @drawRanges(dataset.element, dataset, ranges)
-                @drawPoints(dataset.element, dataset, points)
-
     # this function triggers the reloading of a dataset (sync)
-
     reloadDataset: (datasetId) ->
         dataset = @datasets[datasetId]
+
+        # TODO: adjust
         [ start, end ] = @scales.x.domain()
 
         # start the dataset synchronization
-        dataset.sync(start, end, (records, paths) =>
-            finalRecords = []
-            finalPaths = []
-
-            if !dataset.lineplot
-
-            else
-                # TODO: perform check of records
-                finalPaths = records
-
-            dataset.setRecords(finalRecords)
-            dataset.setPaths(finalPaths)
-            @redrawDataset(datasetId)
-        )
+        dataset.sync(start, end)
 
     ###
     ## Public API
@@ -564,8 +484,12 @@ class TimeSlider extends EventEmitter
         else
             dataset = new RecordDataset(datasetOptions)
 
-        @datasets[id] = dataset
+        # redraw whenever a dataset is synced
+        dataset.on('synced', =>
+            @redraw()
+        )
 
+        @datasets[id] = dataset
         @reloadDataset(id)
 
     # remove a dataset. redraws.

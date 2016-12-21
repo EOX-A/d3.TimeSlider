@@ -1,9 +1,11 @@
 Dataset = require './dataset.coffee'
 RecordCache = require '../caches/record-cache.coffee'
+{ centerTooltipOn, split, intersects } = require '../utils.coffee'
 
 
 class RecordDataset extends Dataset
     constructor: (options) ->
+        { @histogramThreshold, @histogramBinCount, @cluster } = options
         { cacheIdField, cacheRecords } = options
         @cache = new RecordCache(cacheIdField) if cacheRecords
         super(options)
@@ -22,6 +24,12 @@ class RecordDataset extends Dataset
 
     draw: (start, end, options) ->
         { scales } = options
+        if not @records or not @records.length
+            return
+
+        interval = [start, end]
+        records = @records.filter((record) -> intersects(record, interval))
+
         if @histogramThreshold? and records.length >= @histogramThreshold
             @element.selectAll('.record').remove()
             data = records.map((record) =>
@@ -31,14 +39,14 @@ class RecordDataset extends Dataset
 
         else
             @element.selectAll('.bin').remove()
+            x = scales.x
             if @cluster
                 reducer = (args...) => @clusterReducer(args..., x)
-                x = scales.x
                 records = records
                     .reduce(reducer, [])
                     .map((r) -> if r.cluster then r else [r[0], r[1], r[2][0][2]])
 
-            [points, ranges] = split(records, (r) -> @drawAsPoint(r, x))
+            [points, ranges] = split(records, (r) => @drawAsPoint(r, x))
 
             @drawRanges(ranges, scales, options)
             @drawPoints(points, scales, options)
@@ -72,15 +80,16 @@ class RecordDataset extends Dataset
         return acc
 
     drawRanges: (records, scales, options) ->
+        { ticksize } = options
         rect = (elem) =>
             elem.attr('class', 'record')
                 .attr('x', (record) => scales.x(new Date(record[0])) )
-                .attr('y', - (options.ticksize + 3) * dataset.index + -(options.ticksize-2) )
+                .attr('y', - (ticksize + 3) * @index + -(ticksize - 2) )
                 .attr('width', (record) =>
                     scales.x(new Date(record[1])) - scales.x(new Date(record[0]))
                 )
-                .attr('height', (options.ticksize-2))
-                .attr('stroke', d3.rgb(dataset.color).darker())
+                .attr('height', (ticksize - 2))
+                .attr('stroke', d3.rgb(@color).darker())
                 .attr('stroke-width', 1)
 
         r = @element.selectAll('rect.record')
@@ -89,11 +98,12 @@ class RecordDataset extends Dataset
 
         r.enter().append('rect')
             .call(rect)
-            .call((recordElement) => @setupRecord(recordElement))
+            .call((recordElement) => @setupRecord(recordElement, options))
 
         r.exit().remove()
 
-    drawPoints: (records, scales, ticksize) ->
+    drawPoints: (records, scales, options) ->
+        { ticksize } = options
         circle = (elem) =>
             elem.attr('class', 'record')
                 .attr('cx', (a) =>
@@ -115,7 +125,7 @@ class RecordDataset extends Dataset
 
         p.enter().append('circle')
             .call(circle)
-            .call((recordElement) => @setupRecord(recordElement))
+            .call((recordElement) => @setupRecord(recordElement, options))
 
         p.exit().remove()
 
@@ -137,19 +147,19 @@ class RecordDataset extends Dataset
           .range([2, height - 29])
           .clamp(true)
 
-        bars = datasetElement.selectAll('.bin')
+        bars = @element.selectAll('.bin')
           .data(bins)
 
         bars.attr('class', 'bin')
-          .call((binElement) => @setupBin(binElement, dataset, y))
+          .call((binElement) => @setupBin(binElement, y, options))
 
         bars.enter().append('rect')
-          .call((binElement) => @setupBin(binElement, dataset, y))
+          .call((binElement) => @setupBin(binElement, y, options))
 
         bars.exit().remove()
 
     # Convenience method to hook up a single record elements events
-    setupRecord: (recordElement, recordFilter, tooltip, tooltipFormatter, binTooltipFormatter) ->
+    setupRecord: (recordElement, { recordFilter, tooltip, tooltipFormatter, binTooltipFormatter }) ->
         recordElement
             .attr('fill', (record) =>
                 if not @recordFilter or recordFilter(record, this)
@@ -218,13 +228,13 @@ class RecordDataset extends Dataset
                     })
             )
 
-    setupBin: (binElement, dataset, y, scales, tooltip, binTooltipFormatter) ->
+    setupBin: (binElement, y, { scales, tooltip, binTooltipFormatter }) ->
         binElement
             .attr('class', 'bin')
             .attr('fill', @color)
             .attr('x', 1)
             .attr('width', (d) => scales.x(d.x.getTime() + d.dx) - scales.x(d.x) - 1)
-            .attr('transform', (d) => 'translate(#{ scales.x(new Date(d.x)) }, #{ -y(d.length) })')
+            .attr('transform', (d) => "translate(#{ scales.x(new Date(d.x)) }, #{ -y(d.length) })")
             .attr('height', (d) -> y(d.length))
 
         binElement
@@ -247,7 +257,7 @@ class RecordDataset extends Dataset
             )
             .on('mouseout', (bin) =>
                 @dispatch('binMouseout', {
-                    dataset: dataset.id,
+                    dataset: @id,
                     start: bin.x,
                     end: new Date(bin.x.getTime() + bin.dx),
                     bin: bin
@@ -258,7 +268,7 @@ class RecordDataset extends Dataset
             )
             .on('click', (bin) =>
                 @dispatch('binClicked', {
-                    dataset: dataset.id,
+                    dataset: @id,
                     start: bin.x,
                     end: new Date(bin.x.getTime() + bin.dx),
                     bin: bin

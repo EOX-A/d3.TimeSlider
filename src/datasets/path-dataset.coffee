@@ -6,7 +6,9 @@ class PathDataset extends Dataset
 
     draw: (start, end, options) ->
         { scales, axes, height } = options
-        drawPaths(data, scales, axes, height)
+        data = @records || @paths
+        if data and data.length
+            @drawPaths(data, scales, axes, height)
 
     drawPaths: (data, scales, axes, height) ->
         scales.y.domain(d3.extent(data, (d) -> d[1]))
@@ -39,7 +41,7 @@ class PathDataset extends Dataset
             .attr('stroke', @color)
             .attr('stroke-width', '1.5px')
             .attr('fill', 'none')
-            .attr('transform', 'translate(0, #{ -height + 29 })')
+            .attr('transform', "translate(0, #{ -height + 29 })")
 
 
         step = (scales.y.domain()[1] - scales.y.domain()[0])/4
@@ -51,7 +53,7 @@ class PathDataset extends Dataset
             .attr('class', 'y axis')
             .attr('fill', @color)
             .call(axes.y)
-            .attr('transform', 'translate(#{ (@index + 1) * 30 }, #{ -height + 29 })')
+            .attr('transform', "translate(#{ (@index + 1) * 30 }, #{ -height + 29 })")
 
         @element.selectAll('.axis .domain')
             .attr('stroke-width', '1')
