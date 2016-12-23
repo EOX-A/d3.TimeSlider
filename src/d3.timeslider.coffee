@@ -3,6 +3,7 @@ d3 = require 'd3'
 EventEmitter = require './event-emitter.coffee'
 
 RecordDataset = require './datasets/record-dataset.coffee'
+BucketDataset = require './datasets/bucket-dataset.coffee'
 PathDataset = require './datasets/path-dataset.coffee'
 
 class TimeSlider extends EventEmitter
@@ -339,7 +340,8 @@ class TimeSlider extends EventEmitter
             height: @options.height,
             ticksize: @options.ticksize
             scales: @scales,
-            axes: @axis
+            axes: @axis,
+            recordFilter: @recordFilter,
             tooltip: @tooltip,
             tooltipFormatter: @tooltipFormatter,
             binTooltipFormatter: @binTooltipFormatter
@@ -374,8 +376,26 @@ class TimeSlider extends EventEmitter
         # TODO: adjust
         [ start, end ] = @scales.x.domain()
 
+        syncOptions =
+            height: @options.height,
+            ticksize: @options.ticksize
+            scales: @scales,
+            axes: @axis,
+            recordFilter: @recordFilter,
+            tooltip: @tooltip,
+            tooltipFormatter: @tooltipFormatter,
+            binTooltipFormatter: @binTooltipFormatter
+
         # start the dataset synchronization
-        dataset.sync(start, end)
+        dataset.sync(start, end, syncOptions)
+
+    # add the 'loading' class to the timeslider if any dataset is syncing
+    checkLoading: () ->
+        isLoading = false
+        for id of @datasets
+            isLoading = true if @datasets[id].isSyncing()
+
+        @svg.classed('loading', isLoading)
 
     ###
     ## Public API
@@ -466,6 +486,7 @@ class TimeSlider extends EventEmitter
             index: index,
             color: definition.color,
             source: definition.source,
+            bucketSource: definition.bucketSource,
             records: definition.records,
             lineplot: lineplot,
             debounceTime: @options.debounce,
@@ -485,8 +506,12 @@ class TimeSlider extends EventEmitter
             dataset = new RecordDataset(datasetOptions)
 
         # redraw whenever a dataset is synced
+        dataset.on('syncing', =>
+            @checkLoading()
+        )
         dataset.on('synced', =>
             @redraw()
+            @checkLoading()
         )
 
         @datasets[id] = dataset

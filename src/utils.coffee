@@ -8,6 +8,18 @@ split = (list, predicate) ->
             b.push(item)
     return [a, b]
 
+bisect = (array, x, lo = 0, hi = array.length) ->
+  while lo < hi
+      mid = Math.floor((lo + hi) / 2)
+      if x < array[mid]
+          hi = mid
+      else
+          lo = mid + 1
+  return lo
+
+insort = (array, x) ->
+    array.splice(bisect(array, x), 0, x);
+
 intersects = (a, b) ->
     return a[0] <= b[1] and b[0] <= a[1]
 
@@ -98,12 +110,14 @@ centerTooltipOn = (tooltip, target, dir = 'center', offset = [0, 0]) ->
         .style('top', (rect.top - tooltipRect.height) + offset[1] + "px")
 
 module.exports =
-    split: split,
-    intersects: intersects,
-    distance: distance,
-    merged: merged,
-    after: after,
-    subtract: subtract,
-    parseDuration: parseDuration,
-    offsetDate: offsetDate,
+    split: split
+    bisect: bisect
+    insort: insort
+    intersects: intersects
+    distance: distance
+    merged: merged
+    after: after
+    subtract: subtract
+    parseDuration: parseDuration
+    offsetDate: offsetDate
     centerTooltipOn: centerTooltipOn

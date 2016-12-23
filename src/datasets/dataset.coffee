@@ -8,7 +8,7 @@ class Dataset extends EventEmitter
         @fetchDebounced = debounce(@doFetch, debounceTime)
         @currentSyncState = 0
         @lastSyncState = 0
-        super(@element[0][0], 'synced')
+        super(@element[0][0], 'syncing', 'synced')
 
     getSource: ->
         @source
@@ -29,25 +29,33 @@ class Dataset extends EventEmitter
     isSyncing: () ->
         return !(@lastSyncState is @currentSyncState)
 
-    doFetch: (start, end) ->
+    getSourceFunction: (source) ->
+        # sources conforming to the Source interface
+        if source and typeof source.fetch == 'function'
+            return (args...) =>
+                source.fetch(args...)
+        # sources that are functions
+        else if typeof source == 'function'
+            return source
+
+    doFetch: (start, end, params) ->
         @currentSyncState += 1
         syncState = @currentSyncState
+        @listeners.syncing()
+
         fetched = (records) =>
             # only update the timeslider when the state is still valid
-            if syncState == @currentSyncState
-                @records = @postprocess(records)
-                @listeners.synced()
             @lastSyncState = syncState if syncState > @lastSyncState
+            if syncState == @currentSyncState
+                if not @cache
+                    @records = @postprocess(records)
+                @listeners.synced()
 
-        # sources conforming to the Source interface
-        if @source and typeof @source.fetch == 'function'
-            source = (args...) =>
-                @source.fetch(args...)
-        # sources that are functions
-        else if typeof @source == 'function'
-            source = @source
+        if @source
+            source = @getSourceFunction(@source)
         # no source, simply call the callback with the static records and paths
         else
+            @lastSyncState = syncState if syncState > @lastSyncState
             @listeners.synced()
             return
 

@@ -1,3 +1,5 @@
+{ after, intersects, merged, subtract } = require '../utils.coffee'
+
 # cache for records and their respective intervals
 class RecordCache
     constructor: (@idProperty) ->

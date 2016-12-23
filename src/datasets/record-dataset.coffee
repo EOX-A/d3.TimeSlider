@@ -1,6 +1,6 @@
 Dataset = require './dataset.coffee'
 RecordCache = require '../caches/record-cache.coffee'
-{ centerTooltipOn, split, intersects } = require '../utils.coffee'
+{ centerTooltipOn, split, intersects, distance } = require '../utils.coffee'
 
 
 class RecordDataset extends Dataset
@@ -24,11 +24,13 @@ class RecordDataset extends Dataset
 
     draw: (start, end, options) ->
         { scales } = options
-        if not @records or not @records.length
-            return
+        if @cache
+            records = @cache.get(start, end)
+        else
+            records = @records || []
 
         interval = [start, end]
-        records = @records.filter((record) -> intersects(record, interval))
+        records = records.filter((record) -> intersects(record, interval))
 
         if @histogramThreshold? and records.length >= @histogramThreshold
             @element.selectAll('.record').remove()
@@ -54,7 +56,7 @@ class RecordDataset extends Dataset
     drawAsPoint: (record, scale) ->
         return (scale(record[1]) - scale(record[0])) < 5
 
-    clusterReducer = (acc, current, index, x) =>
+    clusterReducer: (acc, current, index, array, x) =>
         if @drawAsPoint(current, x)
             [intersecting, nonIntersecting] = split(acc, (b) ->
                 distance(current, b, x) <= 5
@@ -129,7 +131,7 @@ class RecordDataset extends Dataset
 
         p.exit().remove()
 
-    drawHistogram: (records, scales, height) ->
+    drawHistogram: (records, scales, options) ->
         ticks = scales.x.ticks(@histogramBinCount or 20)
         dx = ticks[1] - ticks[0]
         ticks = [new Date(ticks[0].getTime() - dx)]
@@ -144,7 +146,7 @@ class RecordDataset extends Dataset
 
         y = d3.scale.linear()
           .domain([0, d3.max(bins, (d) -> d.length)])
-          .range([2, height - 29])
+          .range([2, options.height - 29])
           .clamp(true)
 
         bars = @element.selectAll('.bin')
@@ -162,7 +164,7 @@ class RecordDataset extends Dataset
     setupRecord: (recordElement, { recordFilter, tooltip, tooltipFormatter, binTooltipFormatter }) ->
         recordElement
             .attr('fill', (record) =>
-                if not @recordFilter or recordFilter(record, this)
+                if not recordFilter or recordFilter(record, this)
                     @color
                 else
                     'transparent'
