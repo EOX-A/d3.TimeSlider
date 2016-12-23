@@ -1,5 +1,6 @@
 RecordDataset = require './record-dataset.coffee'
 BucketCache = require '../caches/bucket-cache.coffee'
+{ centerTooltipOn } = require '../utils.coffee'
 
 class BucketDataset extends RecordDataset
     constructor: (options) ->
@@ -50,8 +51,9 @@ class BucketDataset extends RecordDataset
                 source(a, b, params, (count) =>
                     @bucketCache.setBucket(resolution, a, count)
                     fetched += 1
-                    if bucketsToFetch.length == fetched and @currentBucketSyncState is @lastBucketSyncState
-                        @listeners.synced()
+                    # if bucketsToFetch.length == fetched and @currentBucketSyncState is @lastBucketSyncState
+                    # if bucketsToFetch.length == fetched and @currentBucketSyncState is @lastBucketSyncState
+                    @listeners.synced()
                 )
 
     draw: (start, end, options) ->
@@ -97,6 +99,44 @@ class BucketDataset extends RecordDataset
             .attr('x', 1)
             .attr('width', (d) => scales.x(d[0].getTime() + resolution) - scales.x(d[0]) - 1)
             .attr('transform', (d) => "translate(#{ scales.x(new Date(d[0])) }, #{ -y(d[1]) })")
-            .attr('height', (d) -> y(d[1]))
+            .attr('height', (d) -> if d[1] then y(d[1]) else 0)
+
+        bucketElement
+            .on('mouseover', (bucket) =>
+                @dispatch('bucketMouseover', {
+                    dataset: @id,
+                    start: bucket[0],
+                    end: new Date(bucket[0].getTime() + resolution),
+                    count: bucket[1]
+                })
+
+                if bucket
+                    message = "#{ bucket[1] if bucket[1]? }"
+                    if message.length
+                        tooltip.html(message)
+                            .transition()
+                            .duration(200)
+                            .style('opacity', .9)
+                        centerTooltipOn(tooltip, d3.event.target)
+            )
+            .on('mouseout', (bucket) =>
+                @dispatch('bucketMouseout', {
+                    dataset: @id,
+                    start: bucket[0],
+                    end: new Date(bucket[0].getTime() + resolution),
+                    count: bucket[1]
+                })
+                tooltip.transition()
+                    .duration(500)
+                    .style('opacity', 0)
+            )
+            .on('click', (bucket) =>
+                @dispatch('bucketClicked', {
+                    dataset: @id,
+                    start: bucket[0],
+                    end: new Date(bucket[0].getTime() + resolution),
+                    count: bucket[1]
+                })
+            )
 
 module.exports = BucketDataset
