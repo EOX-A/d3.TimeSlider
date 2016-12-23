@@ -8,6 +8,18 @@ split = (list, predicate) ->
             b.push(item)
     return [a, b]
 
+bisect = (array, x, lo = 0, hi = array.length) ->
+  while lo < hi
+      mid = Math.floor((lo + hi) / 2)
+      if x < array[mid]
+          hi = mid
+      else
+          lo = mid + 1
+  return lo
+
+insort = (array, x) ->
+    array.splice(bisect(array, x), 0, x);
+
 intersects = (a, b) ->
     return a[0] <= b[1] and b[0] <= a[1]
 
@@ -67,10 +79,45 @@ subtract = (a, b) ->
         # o:
         return []
 
+parseDuration = (duration) ->
+    if not isNaN(parseFloat(duration))
+        return parseFloat(duration)
+
+    matches = duration.match(/^P(?:([0-9]+)Y|)?(?:([0-9]+)M|)?(?:([0-9]+)D|)?T?(?:([0-9]+)H|)?(?:([0-9]+)M|)?(?:([0-9]+)S|)?$/)
+
+    if matches
+        years = (parseInt(matches[1]) || 0) # years
+        months = (parseInt(matches[2]) || 0) + years * 12 # months
+        days = (parseInt(matches[3]) || 0) + months * 30 # days
+        hours = (parseInt(matches[4]) || 0) + days * 24 # hours
+        minutes = (parseInt(matches[5]) || 0) + hours * 60 # minutes
+        return (parseInt(matches[6]) || 0) + minutes * 60 # seconds
+
+offsetDate = (date, seconds) ->
+    return new Date(date.getTime() + seconds * 1000)
+
+centerTooltipOn = (tooltip, target, dir = 'center', offset = [0, 0]) ->
+    rect = target.getBoundingClientRect()
+    tooltipRect = tooltip[0][0].getBoundingClientRect()
+    if dir == 'left'
+        xOff = rect.left
+    else if dir == 'right'
+        xOff = rect.right
+    else
+        xOff = rect.left + rect.width / 2
+    tooltip
+        .style('left', xOff - tooltipRect.width / 2 + offset[0] + "px")
+        .style('top', (rect.top - tooltipRect.height) + offset[1] + "px")
+
 module.exports =
-    split: split,
-    intersects: intersects,
-    distance: distance,
-    merged: merged,
-    after: after,
+    split: split
+    bisect: bisect
+    insort: insort
+    intersects: intersects
+    distance: distance
+    merged: merged
+    after: after
     subtract: subtract
+    parseDuration: parseDuration
+    offsetDate: offsetDate
+    centerTooltipOn: centerTooltipOn

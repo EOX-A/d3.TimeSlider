@@ -19,7 +19,7 @@ module.exports = (grunt) ->
         files: [
           'Gruntfile.coffee',
           'src/*.coffee',
-          'src/plugins/*.coffee'
+          'src/*/*.coffee'
         ],
         tasks: [
           'browserify',
