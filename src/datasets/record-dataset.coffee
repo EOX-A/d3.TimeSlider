@@ -86,7 +86,7 @@ class RecordDataset extends Dataset
         return acc
 
     drawRanges: (records, scales, options) ->
-        { ticksize } = options
+        { ticksize, recordFilter } = options
         rect = (elem) =>
             elem.attr('class', 'record')
                 .attr('x', (record) => scales.x(new Date(record[0])) )
@@ -97,6 +97,12 @@ class RecordDataset extends Dataset
                 .attr('height', (ticksize - 2))
                 .attr('stroke', d3.rgb(@color).darker())
                 .attr('stroke-width', 1)
+                .attr('fill', (record) =>
+                    if not recordFilter or recordFilter(record, this)
+                        @color
+                    else
+                        'transparent'
+                )
 
         r = @element.selectAll('rect.record')
             .data(records)
@@ -109,7 +115,7 @@ class RecordDataset extends Dataset
         r.exit().remove()
 
     drawPoints: (records, scales, options) ->
-        { ticksize } = options
+        { ticksize, recordFilter } = options
         circle = (elem) =>
             elem.attr('class', 'record')
                 .attr('cx', (a) =>
@@ -124,6 +130,12 @@ class RecordDataset extends Dataset
                 .attr('stroke', d3.rgb(@color).darker())
                 .attr('stroke-width', 1)
                 .attr('r', ticksize / 2)
+                .attr('fill', (record) =>
+                    if not recordFilter or recordFilter(record, this)
+                        @color
+                    else
+                        'transparent'
+                )
 
         p = @element.selectAll('circle.record')
             .data(records)
@@ -167,12 +179,6 @@ class RecordDataset extends Dataset
     # Convenience method to hook up a single record elements events
     setupRecord: (recordElement, { recordFilter, tooltip, tooltipFormatter, binTooltipFormatter }) ->
         recordElement
-            .attr('fill', (record) =>
-                if not recordFilter or recordFilter(record, this)
-                    @color
-                else
-                    'transparent'
-            )
             .on('mouseover', (record) =>
                 if record.cluster
                     @dispatch('clusterMouseover', {
