@@ -23,7 +23,7 @@ insort = (array, x) ->
 intersects = (a, b) ->
     return a[0] <= b[1] and b[0] <= a[1]
 
-distance = (a, b, scale) ->
+pixelDistance = (a, b, scale) ->
     if intersects(a, b)
         return 0
     else
@@ -31,6 +31,18 @@ distance = (a, b, scale) ->
             Math.abs(scale(a[0]) - scale(b[0])),
             Math.abs(scale(a[1]) - scale(b[1]))
         )
+
+pixelWidth = (interval, scale) ->
+    return scale(interval[1]) - scale(interval[0])
+
+pixelMaxDifference = (a, b, scale) ->
+    diffs = subtract(a, b)
+    if diffs.length is 0
+        return 0
+    else
+        return Math.max(diffs.map(
+            (diff) -> pixelWidth(diff, scale)
+        )...)
 
 # merge two arrays of objects according to an equality predicate
 merged = (a, b, predicate) ->
@@ -114,7 +126,9 @@ module.exports =
     bisect: bisect
     insort: insort
     intersects: intersects
-    distance: distance
+    pixelDistance: pixelDistance
+    pixelWidth: pixelWidth
+    pixelMaxDifference: pixelMaxDifference
     merged: merged
     after: after
     subtract: subtract

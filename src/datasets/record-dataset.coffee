@@ -1,6 +1,6 @@
 Dataset = require './dataset.coffee'
 RecordCache = require '../caches/record-cache.coffee'
-{ centerTooltipOn, split, intersects, distance } = require '../utils.coffee'
+{ centerTooltipOn, split, intersects, pixelWidth, pixelDistance, pixelMaxDifference } = require '../utils.coffee'
 
 
 class RecordDataset extends Dataset
@@ -54,22 +54,26 @@ class RecordDataset extends Dataset
             @drawPoints(points, scales, options)
 
     drawAsPoint: (record, scale) ->
-        return (scale(record[1]) - scale(record[0])) < 5
+        return pixelWidth(record, scale) < 5
 
     clusterReducer: (acc, current, index, array, x) =>
         if @drawAsPoint(current, x)
+            # if the record is drawn as a point, then get all other records that are
+            # close
             [intersecting, nonIntersecting] = split(acc, (b) ->
-                distance(current, b, x) <= 5
+                pixelDistance(current, b, x) <= 5
             )
         else
+            # if the record is drawn as a range, then get all other records that
+            # intersect
             [intersecting, nonIntersecting] = split(acc, (b) ->
-                intersects(current, b)
+                intersects(current, b) and pixelMaxDifference(current, b, x) < 10
             )
         if intersecting.length
             newBin = [
-              new Date(d3.min(intersecting, (b) -> b[0])),
-              new Date(d3.max(intersecting, (b) -> b[1])),
-              intersecting.map((b) -> b[2]).reduce(((a, r) -> a.concat(r)), [])
+                new Date(d3.min(intersecting, (b) -> b[0])),
+                new Date(d3.max(intersecting, (b) -> b[1])),
+                intersecting.map((b) -> b[2]).reduce(((a, r) -> a.concat(r)), [])
             ]
             newBin[0] = current[0] if current[0] < newBin[0]
             newBin[1] = current[1] if current[1] > newBin[1]
