@@ -1,5 +1,5 @@
 d3 = require 'd3'
-{ split, intersects, distance, merged, after, subtract, parseDuration, offsetDate, centerTooltipOn } = require './utils.coffee'
+{ split, intersects, merged, after, subtract, parseDuration, offsetDate, centerTooltipOn } = require './utils.coffee'
 EventEmitter = require './event-emitter.coffee'
 
 RecordDataset = require './datasets/record-dataset.coffee'
