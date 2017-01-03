@@ -1,5 +1,6 @@
 debounce = require 'debounce'
 EventEmitter = require '../event-emitter.coffee'
+{ after } = require '../utils.coffee'
 
 # Dataset utility class for internal use only
 class Dataset extends EventEmitter
@@ -60,9 +61,27 @@ class Dataset extends EventEmitter
             return
 
         if @cache
-            @cache.fetch(start, end, @sourceParams, source, fetched)
+            #@cache.fetch(start, end, @sourceParams, source, fetched)
+            @doFetchWithCache(start, end, params, source, fetched)
         else
             source(start, end, @sourceParams, fetched)
+
+    doFetchWithCache: (start, end, params, source, fetched) ->
+        missingIntervals = @cache.getMissing(start, end)
+        if missingIntervals.length is 0
+            fetched(@cache.get(start, end))
+        else
+            summaryCallback = after(missingIntervals.length, () =>
+                fetched(@cache.get(start, end))
+            )
+
+            for interval in missingIntervals
+                @cache.reserve(interval...)
+                source(interval[0], interval[1], @sourceParams, (records) =>
+                    @cache.add(interval[0], interval[1], records)
+                    @listeners.synced()
+                    summaryCallback()
+                )
 
     # process synced records
     postprocess: (records) ->

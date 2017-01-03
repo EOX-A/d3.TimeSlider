@@ -1,4 +1,4 @@
-{ after, intersects, merged, subtract } = require '../utils.coffee'
+{ after, split, intersects, merged, subtract } = require '../utils.coffee'
 
 # cache for records and their respective intervals
 class RecordCache
@@ -12,10 +12,12 @@ class RecordCache
     # clear the cache
     clear: () ->
         @buckets = []
+        @reservedBuckets = []
 
     # add the interval with records to the cache. this can trigger a merge with
     # buckets.
     add: (start, end, records) ->
+        @unReserve(start, end)
         intersecting = @getIntersecting(start, end)
         notIntersecting = @buckets
             .filter(([startA, endA, ...]) -> not intersects([start, end], [startA, endA]))
@@ -43,34 +45,60 @@ class RecordCache
             records = merged(records, intersection[2], @predicate)
         return records
 
+    # reserve an interval
+    reserve: (start, end) ->
+        [intersecting, nonIntersecting] = split(@reservedBuckets, ([startA, endA, ...]) ->
+            intersects([start, end], [startA, endA])
+        )
+
+        if intersecting.length
+            min = new Date(d3.min(intersecting, (b) -> b[0]))
+            max = new Date(d3.max(intersecting, (b) -> b[1]))
+
+            min = start if start < min
+            max = end if start > max
+            nonIntersecting.push([min, max])
+        else
+            nonIntersecting.push([start, end])
+
+        @reservedBuckets = nonIntersecting
+
+    unReserve: (start, end) ->
+        [intersecting, nonIntersecting] = split(@reservedBuckets, ([startA, endA, ...]) ->
+            intersects([start, end], [startA, endA])
+        )
+
+        int = [start, end]
+
+        intervals = intersecting
+            .map((interval) ->
+                subtract(interval, int)
+            )
+            .reduce((acc, curr) ->
+                return acc.concat(curr)
+            , [])
+        @reservedBuckets = nonIntersecting.concat(intervals)
+
     # fetch the source, but only the intervals that are required
-    fetch: (start, end, params, source, callback) ->
-        intersecting = @getIntersecting(start, end)
-        intervals = [[start, end],]
+    getMissing: (start, end, params, source, callback) ->
+        intersecting = @getIntersecting(start, end, true)
+        intervals = [[start, end],]
         for bucket in intersecting
             newIntervals = []
             for interval in intervals
                 newIntervals = newIntervals.concat(subtract(interval, bucket))
             intervals = newIntervals
 
-        if intervals.length
-            summaryCallback = after(intervals.length, () =>
-                callback(@get(start, end))
-            )
+        return intervals
 
-            for [intStart, intEnd] in intervals
-                source(intStart, intEnd, params, (records, paths) =>
-                    @add(intStart, intEnd, records)
-                    summaryCallback()
-                )
-        else
-            # fill entire answer from cache
-            callback(@get(start, end))
-
-    getIntersecting: (start, end) ->
-        return @buckets
-            .filter(([startA, endA, ...]) ->
+    getIntersecting: (start, end, includeReserved = false) ->
+        records = @buckets.filter(([startA, endA, ...]) ->
+            intersects([start, end], [startA, endA])
+        )
+        if includeReserved
+            records = records.concat(@reservedBuckets.filter(([startA, endA, ...]) ->
                 intersects([start, end], [startA, endA])
-            )
+            ))
+        return records
 
 module.exports = RecordCache
