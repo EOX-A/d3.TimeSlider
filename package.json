@@ -25,6 +25,7 @@
   "devDependencies": {
     "bootstrap": "^3.3.6",
     "browserify-shim": "^3.8.12",
+    "chai": "^3.5.0",
     "coffeeify": "^2.0.1",
     "grunt": "~0.4.1",
     "grunt-browserify": "^5.0.0",
@@ -35,7 +36,8 @@
     "grunt-contrib-compress": "~0.5.2",
     "grunt-contrib-less": "~0.6.4",
     "grunt-contrib-uglify": "^0.2.7",
-    "grunt-contrib-watch": "~0.4.4"
+    "grunt-contrib-watch": "~0.4.4",
+    "mocha": "^3.2.0"
   },
   "dependencies": {
     "d3": "^3.5.17",
@@ -51,6 +53,8 @@
     "d3": "global:d3"
   },
   "scripts": {
-    "prepublish": "grunt"
+    "prepublish": "grunt",
+    "test": "mocha --compilers coffee:coffee-script/register tests/ --recursive",
+    "test:watch": "mocha --compilers coffee:coffee-script/register tests/ --recursive -w"
   }
 }
