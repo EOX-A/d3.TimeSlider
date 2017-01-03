@@ -1,6 +1,6 @@
 RecordDataset = require './record-dataset.coffee'
 BucketCache = require '../caches/bucket-cache.coffee'
-{ centerTooltipOn } = require '../utils.coffee'
+{ after, centerTooltipOn } = require '../utils.coffee'
 
 class BucketDataset extends RecordDataset
     constructor: (options) ->
@@ -9,6 +9,10 @@ class BucketDataset extends RecordDataset
         { @bucketSource } = options
         currentBucketSyncState = 0
         lastBucketSyncState = 0
+
+    useBuckets: (start, end) ->
+        [ isLower, definite ] = @bucketCache.isCountLower(start, end, @histogramThreshold)
+        return not isLower or not definite
 
     makeTicks: (scale) ->
         ticks = scale.ticks(@histogramBinCount or 20)
@@ -26,9 +30,9 @@ class BucketDataset extends RecordDataset
         { scales } = params
         [ ticks, resolution ] = @makeTicks(scales.x)
 
-        [ count, definite ] = @bucketCache.getTotalCount(resolution, start, end)
+        [ isLower, definite ] = @bucketCache.isCountLower(start, end, @histogramThreshold)
 
-        if count > @histogramThreshold or not definite
+        if @useBuckets(start, end)
             @doFetchBuckets(start, end, resolution, ticks, params)
         else
             super(start, end, params)
@@ -43,7 +47,12 @@ class BucketDataset extends RecordDataset
         if bucketsToFetch.length > 0
             fetched = 0
             @listeners.syncing()
-            # for bucket in bucketsToFetch
+
+            summaryCallback = after(bucketsToFetch.length, () =>
+                if not @useBuckets(start, end)
+                    RecordDataset.prototype.doFetch.call(this, start, end, params)
+            )
+
             bucketsToFetch.forEach (bucket) =>
                 @bucketCache.reserveBucket(resolution, bucket)
                 a = new Date(bucket)
@@ -54,14 +63,13 @@ class BucketDataset extends RecordDataset
                     # if bucketsToFetch.length == fetched and @currentBucketSyncState is @lastBucketSyncState
                     # if bucketsToFetch.length == fetched and @currentBucketSyncState is @lastBucketSyncState
                     @listeners.synced()
+                    summaryCallback()
                 )
 
     draw: (start, end, options) ->
-        { scales } = options
-        [ ticks, resolution ] = @makeTicks(scales.x)
-        [ count, definite ] = @bucketCache.getTotalCount(resolution, start, end)
-        if count > @histogramThreshold or not definite
-            # TODO: clean up records and histograms
+        if @useBuckets(start, end)
+            { scales } = options
+            [ ticks, resolution ] = @makeTicks(scales.x)
             @element.selectAll('.record').remove()
             @element.selectAll('.bin').remove()
             @drawBuckets(ticks, resolution, options)
@@ -73,7 +81,8 @@ class BucketDataset extends RecordDataset
         { scales, height } = options
 
         buckets = ticks.map((tick) =>
-            [tick, @bucketCache.getBucket(resolution, tick) || 0]
+            [ count, definite ] = @bucketCache.getBucketApproximate(resolution, tick)
+            return [ tick, count, definite ]
         )
 
         y = d3.scale.linear()
@@ -85,10 +94,14 @@ class BucketDataset extends RecordDataset
           .data(buckets)
 
         bars.attr('class', 'bucket')
-          .call((bucketElement) => @setupBucket(bucketElement, y, resolution, options))
+          .call((bucketElement) =>
+              @setupBucket(bucketElement, y, resolution, options)
+          )
 
         bars.enter().append('rect')
-          .call((bucketElement) => @setupBucket(bucketElement, y, resolution, options))
+          .call((bucketElement) =>
+              @setupBucket(bucketElement, y, resolution, options)
+          )
 
         bars.exit().remove()
 
@@ -96,6 +109,7 @@ class BucketDataset extends RecordDataset
         bucketElement
             .attr('class', 'bucket')
             .attr('fill', @color)
+            .attr('fill-opacity', (d) -> if d[2] then 1 else 0.5)
             .attr('x', 1)
             .attr('width', (d) => scales.x(d[0].getTime() + resolution) - scales.x(d[0]) - 1)
             .attr('transform', (d) => "translate(#{ scales.x(new Date(d[0])) }, #{ -y(d[1]) })")
