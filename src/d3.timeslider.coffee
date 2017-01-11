@@ -296,6 +296,59 @@ class TimeSlider extends EventEmitter
         if @options.display
             @center(@options.display.start, @options.display.end)
 
+        # If controls are configured add them here
+        if @options.controls
+            d3.select(@element).append("div")
+                .attr("id", "pan-left")
+                .attr("class", "control")
+                .on("click", ()=>
+                    [s,e] = @scales.x.domain()
+                    d = Math.abs(e-s)/10
+                    s = new Date(s.getTime()-d)
+                    e = new Date(e.getTime()-d)
+                    @center(s,e)
+                )
+                .append("div")
+                    .attr("class", "arrow-left")
+
+            d3.select(@element).append("div")
+                .attr("id", "pan-right")
+                .attr("class", "control")
+                .on("click", ()=>
+                    [s,e] = @scales.x.domain()
+                    d = Math.abs(e-s)/10
+                    s = new Date(s.getTime()+d)
+                    e = new Date(e.getTime()+d)
+                    @center(s,e)
+                )
+                .append("div")
+                    .attr("class", "arrow-right")
+
+            d3.select(@element).append("div")
+                .attr("id", "zoom-in")
+                .attr("class", "control")
+                .text("+")
+                .on("click", ()=>
+                    [s,e] = @scales.x.domain()
+                    d = Math.abs(e-s)/10
+                    s = new Date(s.getTime()+(d/2))
+                    e = new Date(e.getTime()-(d/2))
+                    @center(s,e)
+                )
+
+            d3.select(@element).append("div")
+                .attr("id", "zoom-out")
+                .attr("class", "control")
+                .text("-")
+                .on("click", ()=>
+                    [s,e] = @scales.x.domain()
+                    d = Math.abs(e-s)/10
+                    s = new Date(s.getTime()-(d/2))
+                    e = new Date(e.getTime()+(d/2))
+                    @center(s,e)
+                )
+
+
 
     ###
     ## Private API
