@@ -242,11 +242,15 @@ class TimeSlider extends EventEmitter
 
         # create the zoom behavior
         minScale = (@options.display.start - @options.display.end) / (@options.domain.start - @options.domain.end)
+        # Calculate maxScale by gettting milliseconds difference  of the displayed
+        # time domain (getting the seconds by dividing by 1000) and halving it.
+        # This should allow to zoom into to see up to two seconds in the complete timeslider
+        maxScale = Math.abs(@options.display.start - @options.display.end)/2000
 
         @options.zoom = d3.behavior.zoom()
             .x(@scales.x)
             .size([@options.width, @options.height])
-            .scaleExtent([minScale, Infinity])
+            .scaleExtent([minScale, maxScale])
             .on('zoomstart', =>
                 @prevScale2 = @options.zoom.scale()
                 @prevDomain = @scales.x.domain()
