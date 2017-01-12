@@ -333,20 +333,35 @@ class TimeSlider extends EventEmitter
                     d = Math.abs(e-s)/10
                     s = new Date(s.getTime()+(d/2))
                     e = new Date(e.getTime()-(d/2))
+                    if (e - s) < 2 * 1000
+                        [s, e] = @scales.x.domain()
                     @center(s,e)
                 )
 
             d3.select(@element).append("div")
                 .attr("id", "zoom-out")
                 .attr("class", "control")
-                .text("-")
+                .html("&ndash;")
                 .on("click", ()=>
                     [s,e] = @scales.x.domain()
                     d = Math.abs(e-s)/10
                     s = new Date(s.getTime()-(d/2))
                     e = new Date(e.getTime()+(d/2))
+                    [low, high] = @scales.x.domain()
+                    if (e - s) > @options.displayLimit * 1000
+                        [s, e] = @scales.x.domain()
                     @center(s,e)
                 )
+
+            d3.select(@element).append("div")
+                .attr("id", "reload")
+                .attr("class", "control")
+                .on("click", ()=>
+                    for dataset of @datasets
+                        @reloadDataset(dataset, true)
+                )
+                .append("div")
+                    .attr("class", "reload-arrow")
 
 
 
@@ -427,11 +442,14 @@ class TimeSlider extends EventEmitter
             ))
 
     # this function triggers the reloading of a dataset (sync)
-    reloadDataset: (datasetId) ->
+    reloadDataset: (datasetId, clearCaches = false) ->
         dataset = @datasets[datasetId]
 
         # TODO: adjust
         [ start, end ] = @scales.x.domain()
+
+        if clearCaches
+            dataset.clearCaches()
 
         syncOptions =
             height: @options.height,
@@ -453,6 +471,7 @@ class TimeSlider extends EventEmitter
             isLoading = true if @datasets[id].isSyncing()
 
         @svg.classed('loading', isLoading)
+        d3.select('.reload-arrow').classed('arrowloading', isLoading)
 
     ###
     ## Public API
