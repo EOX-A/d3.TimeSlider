@@ -14,7 +14,6 @@
 			<script src="node_modules/d3/d3.js"></script>
 			<script src="dependencies/libcoverage.js/libcoverage.wcs.js" charset="utf-8"></script>
 			<script src="build/d3.timeslider.js"></script>
-			<script src="build/d3.timeslider.plugins.js"></script>
 			<link href="build/d3.timeslider.css" rel="stylesheet" type="text/css" media="all" />
 
 			<!-- LiveReload -->
@@ -60,6 +59,7 @@ window.addEventListener('load', function() {
 		ticksize: 8,
 		brushTooltip: true,
 		constrain: true,
+		controls: true,
 		tooltipFormatter: function(record) {
 			return record[0].toString() + ' - ' + record[1].toString();
 		},

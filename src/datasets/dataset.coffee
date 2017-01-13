@@ -89,4 +89,6 @@ class Dataset extends EventEmitter
 
     draw: () ->
 
+    clearCaches: () ->
+
 module.exports = Dataset

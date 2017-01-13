@@ -242,6 +242,8 @@ class TimeSlider extends EventEmitter
 
         # create the zoom behavior
         minScale = (@options.display.start - @options.display.end) / (@options.domain.start - @options.domain.end)
+        if !@options.constrain
+            minScale = 0
         # Calculate maxScale by gettting milliseconds difference  of the displayed
         # time domain (getting the seconds by dividing by 1000) and halving it.
         # This should allow to zoom into to see up to two seconds in the complete timeslider
@@ -295,6 +297,75 @@ class TimeSlider extends EventEmitter
         # show the initial time span
         if @options.display
             @center(@options.display.start, @options.display.end)
+
+        # If controls are configured add them here
+        if @options.controls
+            d3.select(@element).append("div")
+                .attr("id", "pan-left")
+                .attr("class", "control")
+                .on("click", ()=>
+                    [s,e] = @scales.x.domain()
+                    d = Math.abs(e-s)/10
+                    s = new Date(s.getTime()-d)
+                    e = new Date(e.getTime()-d)
+                    @center(s,e)
+                )
+                .append("div")
+                    .attr("class", "arrow-left")
+
+            d3.select(@element).append("div")
+                .attr("id", "pan-right")
+                .attr("class", "control")
+                .on("click", ()=>
+                    [s,e] = @scales.x.domain()
+                    d = Math.abs(e-s)/10
+                    s = new Date(s.getTime()+d)
+                    e = new Date(e.getTime()+d)
+                    @center(s,e)
+                )
+                .append("div")
+                    .attr("class", "arrow-right")
+
+            d3.select(@element).append("div")
+                .attr("id", "zoom-in")
+                .attr("class", "control")
+                .text("+")
+                .on("click", ()=>
+                    [s,e] = @scales.x.domain()
+                    d = Math.abs(e-s)/10
+                    s = new Date(s.getTime()+(d/2))
+                    e = new Date(e.getTime()-(d/2))
+                    if (e - s) < 2 * 1000
+                        [s, e] = @scales.x.domain()
+                    @center(s,e)
+                )
+
+            d3.select(@element).append("div")
+                .attr("id", "zoom-out")
+                .attr("class", "control")
+                .html("&ndash;")
+                .on("click", ()=>
+                    [s,e] = @scales.x.domain()
+                    d = Math.abs(e-s)/10
+                    s = new Date(s.getTime()-(d/2))
+                    e = new Date(e.getTime()+(d/2))
+                    [low, high] = @scales.x.domain()
+                    if @options.displayLimit != null and 
+                       (e - s) > @options.displayLimit * 1000
+                        [s, e] = @scales.x.domain()
+                    @center(s,e)
+                )
+
+            d3.select(@element).append("div")
+                .attr("id", "reload")
+                .attr("class", "control")
+                .on("click", ()=>
+                    for dataset of @datasets
+                        @reloadDataset(dataset, true)
+                )
+                .append("div")
+                    .attr("class", "reload-arrow")
+
 
 
     ###
@@ -374,11 +445,14 @@ class TimeSlider extends EventEmitter
             ))
 
     # this function triggers the reloading of a dataset (sync)
-    reloadDataset: (datasetId) ->
+    reloadDataset: (datasetId, clearCaches = false) ->
         dataset = @datasets[datasetId]
 
         # TODO: adjust
         [ start, end ] = @scales.x.domain()
+
+        if clearCaches
+            dataset.clearCaches()
 
         syncOptions =
             height: @options.height,
@@ -400,6 +474,7 @@ class TimeSlider extends EventEmitter
             isLoading = true if @datasets[id].isSyncing()
 
         @svg.classed('loading', isLoading)
+        d3.select('.reload-arrow').classed('arrowloading', isLoading)
 
     ###
     ## Public API
@@ -445,14 +520,12 @@ class TimeSlider extends EventEmitter
 
         d3.select(@element).select('g.brush')
             .call(@brush.extent([start, end]))
-        @element.dispatchEvent(new CustomEvent('selectionChanged', {
-            detail: {
-                start: @brush.extent()[0],
-                end: @brush.extent()[1]
-            }
-            bubbles: true,
-            cancelable: true
-        }))
+
+        @dispatch(
+            'selectionChanged',
+            {start: @brush.extent()[0],end: @brush.extent()[1]},
+            @element
+        )
         true
 
     # add a dataset to the TimeSlider. redraws.
