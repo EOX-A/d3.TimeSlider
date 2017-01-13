@@ -520,14 +520,12 @@ class TimeSlider extends EventEmitter
 
         d3.select(@element).select('g.brush')
             .call(@brush.extent([start, end]))
-        @element.dispatchEvent(new CustomEvent('selectionChanged', {
-            detail: {
-                start: @brush.extent()[0],
-                end: @brush.extent()[1]
-            }
-            bubbles: true,
-            cancelable: true
-        }))
+
+        @dispatch(
+            'selectionChanged',
+            {start: @brush.extent()[0],end: @brush.extent()[1]},
+            @element
+        )
         true
 
     # add a dataset to the TimeSlider. redraws.
