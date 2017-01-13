@@ -242,6 +242,8 @@ class TimeSlider extends EventEmitter
 
         # create the zoom behavior
         minScale = (@options.display.start - @options.display.end) / (@options.domain.start - @options.domain.end)
+        if !@options.constrain
+            minScale = 0
         # Calculate maxScale by gettting milliseconds difference  of the displayed
         # time domain (getting the seconds by dividing by 1000) and halving it.
         # This should allow to zoom into to see up to two seconds in the complete timeslider
@@ -348,7 +350,8 @@ class TimeSlider extends EventEmitter
                     s = new Date(s.getTime()-(d/2))
                     e = new Date(e.getTime()+(d/2))
                     [low, high] = @scales.x.domain()
-                    if (e - s) > @options.displayLimit * 1000
+                    if @options.displayLimit != null and 
+                       (e - s) > @options.displayLimit * 1000
                         [s, e] = @scales.x.domain()
                     @center(s,e)
                 )
