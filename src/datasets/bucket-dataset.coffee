@@ -153,4 +153,8 @@ class BucketDataset extends RecordDataset
                 })
             )
 
+    clearCaches: () ->
+        @cache.clear() if @cache
+        @bucketCache.clear() if @bucketCache
+
 module.exports = BucketDataset

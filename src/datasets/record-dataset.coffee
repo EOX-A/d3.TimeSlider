@@ -287,4 +287,7 @@ class RecordDataset extends Dataset
                 })
             )
 
+    clearCaches: () ->
+        @cache.clear() if @cache
+
 module.exports = RecordDataset

@@ -25,6 +25,9 @@ covers = (start, end, offsets, resolution) ->
 
 class BucketCache
     constructor: () ->
+        @clear()
+
+    clear: () ->
         @resolutions = [] # sorted list of resolutions
         @cache = {}
 
