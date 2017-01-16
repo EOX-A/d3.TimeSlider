@@ -9,13 +9,13 @@ split = (list, predicate) ->
     return [a, b]
 
 bisect = (array, x, lo = 0, hi = array.length) ->
-  while lo < hi
-      mid = Math.floor((lo + hi) / 2)
-      if x < array[mid]
-          hi = mid
-      else
-          lo = mid + 1
-  return lo
+    while lo < hi
+        mid = Math.floor((lo + hi) / 2)
+        if x < array[mid]
+            hi = mid
+        else
+            lo = mid + 1
+    return lo
 
 insort = (array, x) ->
     array.splice(bisect(array, x), 0, x);

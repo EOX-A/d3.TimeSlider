@@ -157,7 +157,7 @@ class RecordDataset extends Dataset
         bins = d3.layout.histogram()
           .bins(ticks)
           .range(scales.x.domain())
-          .value((record) -> new Date(record[0] + (record[1] - record[0]) / 2))(records)
+          .value((record) -> new Date(record[0].getTime() + (record[1].getTime() - record[0].getTime()) / 2))(records)
           .filter((b) -> b.length)
 
         y = d3.scale.linear()
