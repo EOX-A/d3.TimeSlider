@@ -1,5 +1,5 @@
 d3 = require 'd3'
-{ split, intersects, merged, after, subtract, parseDuration, offsetDate, centerTooltipOn } = require './utils.coffee'
+{ split, intersects, merged, after, subtract, parseDuration, offsetDate, centerTooltipOn, pixelWidth } = require './utils.coffee'
 EventEmitter = require './event-emitter.coffee'
 
 RecordDataset = require './datasets/record-dataset.coffee'
@@ -214,6 +214,12 @@ class TimeSlider extends EventEmitter
             )
             .extent([@options.brush.start, @options.brush.end])
 
+        @svg.append('g')
+            .attr('class', 'highlight')
+            .selectAll('rect')
+                .attr('height', "#{@options.height - 19}")
+                .attr('y', 0)
+
         # add a group to draw the brush in
         @svg.append('g')
             .attr('class', 'brush')
@@ -350,7 +356,7 @@ class TimeSlider extends EventEmitter
                     s = new Date(s.getTime()-(d/2))
                     e = new Date(e.getTime()+(d/2))
                     [low, high] = @scales.x.domain()
-                    if @options.displayLimit != null and 
+                    if @options.displayLimit != null and
                        (e - s) > @options.displayLimit * 1000
                         [s, e] = @scales.x.domain()
                     @center(s,e)
@@ -421,9 +427,9 @@ class TimeSlider extends EventEmitter
             tooltipFormatter: @tooltipFormatter,
             binTooltipFormatter: @binTooltipFormatter
 
-        # TODO: apply margin?
-        [ start, end ] = @scales.x.domain()
+        @drawHighlights()
 
+        [ start, end ] = @scales.x.domain()
         # repaint the datasets
         # First paint lines and ticks
         for datasetId of @datasets
@@ -443,6 +449,43 @@ class TimeSlider extends EventEmitter
             .classed('tick-date', (d) -> !(
                 d.getUTCMilliseconds() | d.getUTCSeconds() | d.getUTCMinutes() | d.getUTCHours()
             ))
+
+    drawHighlights: () ->
+        #draw the highlighted interval
+        d3.select(@element).selectAll('.highlight .interval').remove()
+        if @highlightInterval
+            start = @highlightInterval.start
+            end = @highlightInterval.end
+            left = @scales.x(start)
+            width = pixelWidth([start, end], @scales.x)
+            right = left + width
+            height = @options.height - 19
+
+            d3.select(@element).selectAll('.highlight').append('rect')
+                .attr('class', 'interval')
+                .attr('x', left)
+                .attr('width', width)
+                .attr('y', 0)
+                .attr('height', height)
+                .attr('stroke', @highlightInterval.strokeColor)
+                .attr('stroke-width', 1)
+                .attr('fill', @highlightInterval.fillColor)
+            if @highlightInterval.outsideColor
+                if left > 0
+                    d3.select(@element).selectAll('.highlight').append('rect')
+                        .attr('class', 'interval')
+                        .attr('x', 0)
+                        .attr('width', left)
+                        .attr('y', 0)
+                        .attr('height', height)
+                        .attr('fill', @highlightInterval.outsideColor)
+                d3.select(@element).selectAll('.highlight').append('rect')
+                    .attr('class', 'interval')
+                    .attr('x', right)
+                    .attr('width', 2000)
+                    .attr('y', 0)
+                    .attr('height', height)
+                    .attr('fill', @highlightInterval.outsideColor)
 
     # this function triggers the reloading of a dataset (sync)
     reloadDataset: (datasetId, clearCaches = false) ->
@@ -706,6 +749,19 @@ class TimeSlider extends EventEmitter
     setTooltipFormatter: (@tooltipFormatter) ->
 
     setBinTooltipFormatter: (@binTooltipFormatter) ->
+
+    setHighlightInterval: (start, end, fillColor, strokeColor, outsideColor) ->
+      if start and end
+          @highlightInterval =
+              start: start
+              end: end
+              fillColor: fillColor
+              strokeColor: strokeColor
+              outsideColor: outsideColor
+      else
+          @highlightInterval = null
+
+      @redraw()
 
 
 # Interface for a source
