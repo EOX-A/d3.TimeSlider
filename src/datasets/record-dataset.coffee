@@ -127,7 +127,9 @@ class RecordDataset extends Dataset
 
         r.enter().append('rect')
             .call(rect)
-            .call((recordElement) => @setupRecord(recordElement, options))
+            .call((recordElement) =>
+                @setupRecord(recordElement, options) if not highlight
+            )
 
         r.exit().remove()
 
@@ -163,7 +165,9 @@ class RecordDataset extends Dataset
 
         p.enter().append('circle')
             .call(circle)
-            .call((recordElement) => @setupRecord(recordElement, options))
+            .call((recordElement) =>
+                @setupRecord(recordElement, options) if not highlight
+            )
 
         p.exit().remove()
 
