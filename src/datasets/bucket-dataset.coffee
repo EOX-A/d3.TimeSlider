@@ -1,6 +1,6 @@
 RecordDataset = require './record-dataset.coffee'
 BucketCache = require '../caches/bucket-cache.coffee'
-{ after, centerTooltipOn } = require '../utils.coffee'
+{ after, centerTooltipOn, intersects } = require '../utils.coffee'
 
 class BucketDataset extends RecordDataset
     constructor: (options) ->
@@ -95,20 +95,39 @@ class BucketDataset extends RecordDataset
 
         bars.attr('class', 'bucket')
           .call((bucketElement) =>
-              @setupBucket(bucketElement, y, resolution, options)
+              @setupBuckets(bucketElement, y, resolution, options)
           )
 
         bars.enter().append('rect')
           .call((bucketElement) =>
-              @setupBucket(bucketElement, y, resolution, options)
+              @setupBuckets(bucketElement, y, resolution, options)
           )
 
         bars.exit().remove()
 
-    setupBucket: (bucketElement, y, resolution, { scales, tooltip, binTooltipFormatter }) ->
+    setupBuckets: (bucketElement, y, resolution, { scales, tooltip, binTooltipFormatter }) ->
         bucketElement
             .attr('class', 'bucket')
-            .attr('fill', @color)
+            .attr('fill', (d) =>
+                interval = [d[0], new Date(d[0].getTime() + resolution)]
+                highlight = @recordHighlights.reduce((acc, int) =>
+                    acc || intersects(int, interval)
+                , false)
+                if highlight
+                    @highlightFillColor
+                else
+                    @color
+            )
+            .attr('stroke', (d) =>
+                interval = [d[0], new Date(d[0].getTime() + resolution)]
+                highlight = @recordHighlights.reduce((acc, int) =>
+                    acc || intersects(int, interval)
+                , false)
+                if highlight
+                    @highlightStrokeColor
+                else
+                    d3.rgb(@color).darker()
+            )
             .attr('fill-opacity', (d) -> if d[2] then 1 else 0.5)
             .attr('x', 1)
             .attr('width', (d) => scales.x(d[0].getTime() + resolution) - scales.x(d[0]) - 1)

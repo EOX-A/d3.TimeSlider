@@ -33,7 +33,7 @@ class RecordDataset extends Dataset
         records = records.filter((record) -> intersects(record, interval))
 
         if @histogramThreshold? and records.length >= @histogramThreshold
-            @element.selectAll('.record').remove()
+            @element.selectAll('.record,.highlight-record').remove()
             data = records.map((record) =>
                 new Date(record[0] + (record[1] - record[0]) / 2)
             )
@@ -52,6 +52,20 @@ class RecordDataset extends Dataset
 
             @drawRanges(ranges, scales, options)
             @drawPoints(points, scales, options)
+
+            recordHighlights = @recordHighlights
+            # draw highlights
+            if @cluster
+                reducer = (args...) => @clusterReducer(args..., x)
+                recordHighlights = recordHighlights
+                    .reduce(reducer, [])
+                    .map((r) -> if r.cluster then r else [r[0], r[1], r[2][0][2]])
+
+            [highlightPoints, highlightRanges] = split(recordHighlights, (r) =>
+                @drawAsPoint(r, x)
+            )
+            @drawRanges(highlightRanges, scales, options, true)
+            @drawPoints(highlightPoints, scales, options, true)
 
     drawAsPoint: (record, scale) ->
         return pixelWidth(record, scale) < 5
@@ -85,26 +99,29 @@ class RecordDataset extends Dataset
             acc.push([current[0], current[1], [current]])
         return acc
 
-    drawRanges: (records, scales, options) ->
+    drawRanges: (records, scales, options, highlight = false) ->
+        color = if highlight then @highlightFillColor else @color
+        strokeColor = if highlight then @highlightStrokeColor else d3.rgb(color).darker()
+        className = if highlight then 'highlight-record' else 'record'
         { ticksize, recordFilter } = options
         rect = (elem) =>
-            elem.attr('class', 'record')
+            elem.attr('class', className)
                 .attr('x', (record) => scales.x(new Date(record[0])) )
                 .attr('y', - (ticksize + 3) * @index + -(ticksize - 2) )
                 .attr('width', (record) =>
                     scales.x(new Date(record[1])) - scales.x(new Date(record[0]))
                 )
                 .attr('height', (ticksize - 2))
-                .attr('stroke', d3.rgb(@color).darker())
+                .attr('stroke', strokeColor)
                 .attr('stroke-width', 1)
                 .attr('fill', (record) =>
-                    if not recordFilter or recordFilter(record, this)
-                        @color
+                    if highlight or (not recordFilter or recordFilter(record, this))
+                        color
                     else
                         'transparent'
                 )
 
-        r = @element.selectAll('rect.record')
+        r = @element.selectAll("rect.#{ className }")
             .data(records)
             .call(rect)
 
@@ -114,10 +131,13 @@ class RecordDataset extends Dataset
 
         r.exit().remove()
 
-    drawPoints: (records, scales, options) ->
+    drawPoints: (records, scales, options, highlight = false) ->
+        color = if highlight then @highlightFillColor else @color
+        strokeColor = if highlight then @highlightStrokeColor else d3.rgb(color).darker()
+        className = if highlight then 'highlight-record' else 'record'
         { ticksize, recordFilter } = options
         circle = (elem) =>
-            elem.attr('class', 'record')
+            elem.attr('class', className)
                 .attr('cx', (a) =>
                     if Array.isArray(a)
                         if a[0] != a[1]
@@ -127,17 +147,17 @@ class RecordDataset extends Dataset
                         return scales.x(new Date(a))
                 )
                 .attr('cy', - (ticksize + 3) * @index - (ticksize - 2) / 2)
-                .attr('stroke', d3.rgb(@color).darker())
+                .attr('stroke', strokeColor)
                 .attr('stroke-width', 1)
                 .attr('r', ticksize / 2)
                 .attr('fill', (record) =>
-                    if not recordFilter or recordFilter(record, this)
-                        @color
+                    if highlight or (not recordFilter or recordFilter(record, this))
+                        color
                     else
                         'transparent'
                 )
 
-        p = @element.selectAll('circle.record')
+        p = @element.selectAll("circle.#{ className }")
             .data(records)
             .call(circle)
 
@@ -165,14 +185,14 @@ class RecordDataset extends Dataset
           .range([2, options.height - 29])
           .clamp(true)
 
-        bars = @element.selectAll('.bin')
+        bars = @element.selectAll(".bin")
           .data(bins)
 
         bars.attr('class', 'bin')
-          .call((binElement) => @setupBin(binElement, y, options))
+          .call((binElement) => @setupBins(binElement, y, options))
 
         bars.enter().append('rect')
-          .call((binElement) => @setupBin(binElement, y, options))
+          .call((binElement) => @setupBins(binElement, y, options))
 
         bars.exit().remove()
 
@@ -240,10 +260,29 @@ class RecordDataset extends Dataset
                     })
             )
 
-    setupBin: (binElement, y, { scales, tooltip, binTooltipFormatter }) ->
+    setupBins: (binElement, y, { scales, tooltip, binTooltipFormatter }) ->
         binElement
             .attr('class', 'bin')
-            .attr('fill', @color)
+            .attr('fill', (d) =>
+                interval = [d.x, new Date(d.x.getTime() + d.dx)]
+                highlight = @recordHighlights.reduce((acc, int) =>
+                    acc || intersects(int, interval)
+                , false)
+                if highlight
+                    @highlightFillColor
+                else
+                    @color
+            )
+            .attr('stroke', (d) =>
+                interval = [d.x, new Date(d.x.getTime() + d.dx)]
+                highlight = @recordHighlights.reduce((acc, int) =>
+                    acc || intersects(int, interval)
+                , false)
+                if highlight
+                    @highlightStrokeColor
+                else
+                    d3.rgb(@color).darker()
+            )
             .attr('x', 1)
             .attr('width', (d) => scales.x(d.x.getTime() + d.dx) - scales.x(d.x) - 1)
             .attr('transform', (d) => "translate(#{ scales.x(new Date(d.x)) }, #{ -y(d.length) })")

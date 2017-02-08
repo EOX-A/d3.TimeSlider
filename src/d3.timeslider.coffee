@@ -605,6 +605,8 @@ class TimeSlider extends EventEmitter
             id: id,
             index: index,
             color: definition.color,
+            highlightFillColor: definition.highlightFillColor,
+            highlightStrokeColor: definition.highlightStrokeColor,
             source: definition.source,
             bucketSource: definition.bucketSource,
             records: definition.records,
@@ -751,18 +753,23 @@ class TimeSlider extends EventEmitter
     setBinTooltipFormatter: (@binTooltipFormatter) ->
 
     setHighlightInterval: (start, end, fillColor, strokeColor, outsideColor) ->
-      if start and end
-          @highlightInterval =
-              start: start
-              end: end
-              fillColor: fillColor
-              strokeColor: strokeColor
-              outsideColor: outsideColor
-      else
-          @highlightInterval = null
+        if start and end
+            @highlightInterval =
+                start: start
+                end: end
+                fillColor: fillColor
+                strokeColor: strokeColor
+                outsideColor: outsideColor
+        else
+            @highlightInterval = null
 
-      @redraw()
+        @redraw()
 
+    setRecordHighlights: (datasetId, intervals = []) ->
+        dataset = @datasets[datasetId]
+        if dataset?
+            dataset.setRecordHighlights(intervals)
+            @redraw()
 
 # Interface for a source
 class Source

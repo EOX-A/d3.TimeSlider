@@ -4,11 +4,13 @@ EventEmitter = require '../event-emitter.coffee'
 
 # Dataset utility class for internal use only
 class Dataset extends EventEmitter
-    constructor: ({ @id,  @color, @source, @sourceParams, @index, @records,
-                    @paths, @lineplot, @ordinal, @element, debounceTime}) ->
+    constructor: ({ @id,  @color, @highlightFillColor, @highlightStrokeColor,
+                    @source, @sourceParams, @index, @records,
+                    @paths, @lineplot, @ordinal, @element, debounceTime }) ->
         @fetchDebounced = debounce(@doFetch, debounceTime)
         @currentSyncState = 0
         @lastSyncState = 0
+        @recordHighlights = []
         super(@element[0][0], 'syncing', 'synced')
 
     getSource: ->
@@ -90,5 +92,7 @@ class Dataset extends EventEmitter
     draw: () ->
 
     clearCaches: () ->
+
+    setRecordHighlights: (@recordHighlights) ->
 
 module.exports = Dataset
