@@ -56,8 +56,9 @@ class BucketCache
 
             # find offset covering the bucket we are interested in
             if nextOffset <= offset and (nextOffset + nextResolution) >= (time + resolution)
-                value = res.buckets[nextOffset]
-                return [Math.round(value / (nextResolution / resolution)), false]
+                value = res.buckets[nextOffset].count
+                denom = (nextResolution / resolution)
+                return [Math.round(value / denom), false]
 
         return [0, false]
 
@@ -65,10 +66,13 @@ class BucketCache
         time = toTime(offset)
         return @cache[resolution]?.buckets[time]?
 
-    setBucket: (resolution, offset, count) ->
+    setBucket: (resolution, offset, width, count) ->
         time = toTime(offset)
         @prepareResolution(resolution)
-        @cache[resolution].buckets[time] = count
+        @cache[resolution].buckets[time] = {
+            count: count,
+            width: width,
+        }
         insort(@cache[resolution].offsets, time)
 
     # bucket reservation API

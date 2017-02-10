@@ -40,9 +40,11 @@ class BucketDataset extends RecordDataset
     doFetchBuckets: (start, end, resolution, ticks, params) ->
         source = @getSourceFunction(@bucketSource)
         bucketsToFetch = []
-        for tick in ticks
+        for tick, i in ticks
             if not @bucketCache.hasBucketOrReserved(resolution, tick)
-                bucketsToFetch.push(tick)
+                next = ticks[i + 1]
+                dt = next.getTime() - tick.getTime() if next
+                bucketsToFetch.push([tick, dt])
 
         if bucketsToFetch.length > 0
             fetched = 0
@@ -53,12 +55,12 @@ class BucketDataset extends RecordDataset
                     RecordDataset.prototype.doFetch.call(this, start, end, params)
             )
 
-            bucketsToFetch.forEach (bucket) =>
+            bucketsToFetch.forEach ([bucket, dt]) =>
                 @bucketCache.reserveBucket(resolution, bucket)
                 a = new Date(bucket)
-                b = new Date(bucket.getTime() + resolution)
+                b = new Date(bucket.getTime() + (dt or resolution))
                 source(a, b, params, (count) =>
-                    @bucketCache.setBucket(resolution, a, count)
+                    @bucketCache.setBucket(resolution, a, dt, count)
                     fetched += 1
                     # if bucketsToFetch.length == fetched and @currentBucketSyncState is @lastBucketSyncState
                     # if bucketsToFetch.length == fetched and @currentBucketSyncState is @lastBucketSyncState
@@ -81,12 +83,13 @@ class BucketDataset extends RecordDataset
         { scales, height } = options
 
         buckets = ticks.map((tick) =>
-            [ count, definite ] = @bucketCache.getBucketApproximate(resolution, tick)
-            return [ tick, count, definite ]
+            [ bucket, definite ] = @bucketCache.getBucketApproximate(resolution, tick)
+            end = new Date(tick.getTime() + bucket.width) if bucket.width?
+            return [ tick, end, bucket.count, definite ]
         )
 
         y = d3.scale.linear()
-          .domain([0, d3.max(buckets, (d) -> d[1])])
+          .domain([0, d3.max(buckets, (d) -> d[2])])
           .range([2, height - 29])
           .clamp(true)
 
@@ -109,7 +112,7 @@ class BucketDataset extends RecordDataset
         bucketElement
             .attr('class', 'bucket')
             .attr('fill', (d) =>
-                interval = [d[0], new Date(d[0].getTime() + resolution)]
+                interval = [d[0], d[1] or new Date(d[0].getTime() + resolution)]
                 highlight = @recordHighlights.reduce((acc, int) =>
                     acc || intersects(int, interval)
                 , false)
@@ -119,7 +122,7 @@ class BucketDataset extends RecordDataset
                     @color
             )
             .attr('stroke', (d) =>
-                interval = [d[0], new Date(d[0].getTime() + resolution)]
+                interval = [d[0], d[1] or new Date(d[0].getTime() + resolution)]
                 highlight = @recordHighlights.reduce((acc, int) =>
                     acc || intersects(int, interval)
                 , false)
@@ -130,21 +133,25 @@ class BucketDataset extends RecordDataset
             )
             .attr('fill-opacity', (d) -> if d[2] then 1 else 0.5)
             .attr('x', 1)
-            .attr('width', (d) => scales.x(d[0].getTime() + resolution) - scales.x(d[0]) - 1)
-            .attr('transform', (d) => "translate(#{ scales.x(new Date(d[0])) }, #{ -y(d[1]) })")
-            .attr('height', (d) -> if d[1] then y(d[1]) else 0)
+            .attr('width', (d) =>
+                scales.x((d[1] or new Date(d[0].getTime() + resolution))) - scales.x(d[0]) - 1
+            )
+            .attr('transform', (d) =>
+                "translate(#{ scales.x(d[0]) }, #{ -y(d[2]) or 0 })"
+                )
+            .attr('height', (d) -> if d[2] then y(d[2]) else 0)
 
         bucketElement
             .on('mouseover', (bucket) =>
                 @dispatch('bucketMouseover', {
                     dataset: @id,
                     start: bucket[0],
-                    end: new Date(bucket[0].getTime() + resolution),
-                    count: bucket[1]
+                    end: bucket[1] || new Date(bucket[0].getTime() + resolution),
+                    count: bucket[2]
                 })
 
                 if bucket
-                    message = "#{ bucket[1] if bucket[1]? }"
+                    message = "#{ bucket[2] if bucket[2]? }"
                     if message.length
                         tooltip.html(message)
                             .transition()
@@ -156,8 +163,8 @@ class BucketDataset extends RecordDataset
                 @dispatch('bucketMouseout', {
                     dataset: @id,
                     start: bucket[0],
-                    end: new Date(bucket[0].getTime() + resolution),
-                    count: bucket[1]
+                    end: bucket[1] || new Date(bucket[0].getTime() + resolution),
+                    count: bucket[2]
                 })
                 tooltip.transition()
                     .duration(500)
@@ -167,8 +174,8 @@ class BucketDataset extends RecordDataset
                 @dispatch('bucketClicked', {
                     dataset: @id,
                     start: bucket[0],
-                    end: new Date(bucket[0].getTime() + resolution),
-                    count: bucket[1]
+                    end: bucket[1] || new Date(bucket[0].getTime() + resolution),
+                    count: bucket[2]
                 })
             )
 
