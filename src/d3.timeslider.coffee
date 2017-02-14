@@ -372,21 +372,34 @@ class TimeSlider extends EventEmitter
                 .append("div")
                     .attr("class", "reload-arrow")
 
-
-
     ###
     ## Private API
     ###
 
     checkBrush: ->
-        if @selectionConstraint
-            [a, b] = @selectionConstraint
+        if @selectionConstraint or @highlightInterval?.constrain
+            [a, b] = @selectionConstraint if @selectionConstraint
+
+            if not @selectionConstraint
+                [a, b] = [@highlightInterval.start, @highlightInterval.end]
+
+            if @highlightInterval?.constrain
+                [a, b] = [
+                    if a > @highlightInterval.start then a else @highlightInterval.start,
+                    if b < @highlightInterval.end then b else @highlightInterval.end
+                ]
+
             [x, y] = @brush.extent()
+            [x, y] = [y, x] if x > y
 
             if x < a
                 x = a
+            if x > b
+                x = b
             if y > b
                 y = b
+            if y < a
+                y = a
 
             @brush.extent([x, y])
 
@@ -752,7 +765,7 @@ class TimeSlider extends EventEmitter
 
     setBinTooltipFormatter: (@binTooltipFormatter) ->
 
-    setHighlightInterval: (start, end, fillColor, strokeColor, outsideColor) ->
+    setHighlightInterval: (start, end, fillColor, strokeColor, outsideColor, constrain = false) ->
         if start and end
             @highlightInterval =
                 start: start
@@ -760,6 +773,10 @@ class TimeSlider extends EventEmitter
                 fillColor: fillColor
                 strokeColor: strokeColor
                 outsideColor: outsideColor
+                constrain: constrain
+
+            if constrain
+                @checkBrush()
         else
             @highlightInterval = null
 
