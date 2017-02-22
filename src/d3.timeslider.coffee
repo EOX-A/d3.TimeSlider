@@ -532,6 +532,14 @@ class TimeSlider extends EventEmitter
         @svg.classed('loading', isLoading)
         d3.select('.reload-arrow').classed('arrowloading', isLoading)
 
+        if @isLoading != isLoading
+            if isLoading
+                @dispatch('loadStart')
+            else
+                @dispatch('loadEnd')
+
+            @isLoading = isLoading
+
     ###
     ## Public API
     ###
