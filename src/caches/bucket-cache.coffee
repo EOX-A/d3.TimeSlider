@@ -98,7 +98,7 @@ class BucketCache
         count = 0
 
         sumReducer = (acc, offset) ->
-            return acc + res.buckets[offset]
+            return acc + res.buckets[offset].count
 
         for resolution in @resolutions
             res = @cache[resolution]
