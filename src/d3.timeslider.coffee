@@ -648,6 +648,8 @@ class TimeSlider extends EventEmitter
         else
             dataset = new RecordDataset(datasetOptions)
 
+        element.data([dataset])
+
         # redraw whenever a dataset is synced
         dataset.on('syncing', =>
             @checkLoading()
@@ -683,6 +685,20 @@ class TimeSlider extends EventEmitter
 
         @redraw()
         true
+
+
+    reorderDatasets: (ids) ->
+        d3.select(@element).selectAll('g.dataset').sort((a, b) ->
+            ia = ids.indexOf(a.id)
+            ib = ids.indexOf(b.id)
+
+            if ia > ib
+                return -1
+            else if ia < ib
+                return 1
+            else
+                return 0
+        )
 
     hasDataset: (id) ->
         return false unless @datasets[id]?
