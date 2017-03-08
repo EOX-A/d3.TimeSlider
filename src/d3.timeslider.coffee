@@ -582,6 +582,10 @@ class TimeSlider extends EventEmitter
         start = @options.start if start < @options.start
         end = @options.end if end > @options.end
 
+        if @highlightInterval?.constrain
+            start = @highlightInterval.start if start < @highlightInterval.start
+            end = @highlightInterval.end if end > @highlightInterval.end
+
         d3.select(@element).select('g.brush')
             .call(@brush.extent([start, end]))
 
