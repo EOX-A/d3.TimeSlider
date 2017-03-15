@@ -9,6 +9,7 @@ class BucketDataset extends RecordDataset
         { @bucketSource } = options
         currentBucketSyncState = 0
         lastBucketSyncState = 0
+        @toFetch = 0
 
     useBuckets: (start, end) ->
         [ isLower, definite ] = @bucketCache.isCountLower(start, end, @histogramThreshold)
@@ -23,10 +24,9 @@ class BucketDataset extends RecordDataset
         return [ticks, resolution];
 
     isSyncing: () ->
-        return !(@lastSyncState is @currentSyncState) || !(@currentBucketSyncState is @lastBucketSyncState)
+        return @toFetch > 0
 
     doFetch: (start, end, params) ->
-        # TODO: if below threshold -> do the usual fetching
         { scales } = params
         [ ticks, resolution ] = @makeTicks(scales.x)
 
@@ -47,7 +47,7 @@ class BucketDataset extends RecordDataset
                 bucketsToFetch.push([tick, dt])
 
         if bucketsToFetch.length > 0
-            fetched = 0
+            @toFetch += bucketsToFetch.length
             @listeners.syncing()
 
             summaryCallback = after(bucketsToFetch.length, () =>
@@ -61,9 +61,7 @@ class BucketDataset extends RecordDataset
                 b = new Date(bucket.getTime() + (dt or resolution))
                 source(a, b, params, (count) =>
                     @bucketCache.setBucket(resolution, a, dt, count)
-                    fetched += 1
-                    # if bucketsToFetch.length == fetched and @currentBucketSyncState is @lastBucketSyncState
-                    # if bucketsToFetch.length == fetched and @currentBucketSyncState is @lastBucketSyncState
+                    @toFetch -= 1
                     @listeners.synced()
                     summaryCallback()
                 )
