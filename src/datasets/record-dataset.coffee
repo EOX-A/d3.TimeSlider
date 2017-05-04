@@ -30,7 +30,11 @@ class RecordDataset extends Dataset
             records = @records || []
 
         interval = [start, end]
-        records = records.filter((record) -> intersects(record, interval))
+        records = records.filter((record) ->
+            if record[1] instanceof Date
+                return intersects(record, interval)
+            return intersects([record[0], record[0]], interval)
+        )
 
         if @histogramThreshold? and records.length >= @histogramThreshold
             @element.selectAll('.record,.highlight-record').remove()
@@ -142,7 +146,7 @@ class RecordDataset extends Dataset
             elem.attr('class', className)
                 .attr('cx', (a) =>
                     if Array.isArray(a)
-                        if a[0] != a[1]
+                        if  a[1] instanceof Date and a[0] != a[1]
                             return scales.x(new Date(a[0].getTime() + Math.abs(a[1] - a[0]) / 2))
                         return scales.x(new Date(a[0]))
                     else
@@ -216,10 +220,13 @@ class RecordDataset extends Dataset
                     @dispatch('recordMouseover', {
                         dataset: @id,
                         start: record[0],
-                        end: record[1],
-                        params: record[2]
+                        end: if record[1] instanceof Date then record[1] else record[0],
+                        params: if record[1] instanceof Date then record[2] else record[1]
                     })
-                    message = tooltipFormatter(record, this)
+                    if record[1] instanceof Date
+                        message = tooltipFormatter(record, this)
+                    else
+                        message = tooltipFormatter([record[0], record[0], record[1]], this)
 
                 if message
                     tooltip.html(message)
@@ -240,8 +247,8 @@ class RecordDataset extends Dataset
                     @dispatch('recordMouseout', {
                         dataset: @id,
                         start: record[0],
-                        end: record[1],
-                        params: record[2]
+                        end: if record[1] instanceof Date then record[1] else record[0],
+                        params: if record[1] instanceof Date then record[2] else record[1]
                     })
                 tooltip.transition()
                     .duration(500)
@@ -259,8 +266,8 @@ class RecordDataset extends Dataset
                     @dispatch('recordClicked', {
                         dataset: @id,
                         start: record[0],
-                        end: record[1],
-                        params: record[2]
+                        end: if record[1] instanceof Date then record[1] else record[0],
+                        params: if record[1] instanceof Date then record[2] else record[1]
                     })
             )
 

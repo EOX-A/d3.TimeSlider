@@ -33,7 +33,9 @@ pixelDistance = (a, b, scale) ->
         )
 
 pixelWidth = (interval, scale) ->
-    return scale(interval[1]) - scale(interval[0])
+    if interval[1] instanceof Date
+        return scale(interval[1]) - scale(interval[0])
+    return 0
 
 pixelMaxDifference = (a, b, scale) ->
     diffs = subtract(a, b)
