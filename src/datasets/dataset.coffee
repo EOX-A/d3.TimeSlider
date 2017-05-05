@@ -80,7 +80,7 @@ class Dataset extends EventEmitter
             for interval in missingIntervals
                 @cache.reserve(interval...)
                 source(interval[0], interval[1], @sourceParams, (records) =>
-                    @cache.add(interval[0], interval[1], records)
+                    @cache.add(interval[0], interval[1], @postprocess(records))
                     @listeners.synced()
                     summaryCallback()
                 )
