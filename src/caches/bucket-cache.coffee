@@ -5,20 +5,20 @@ toTime = (date) ->
     if date?.getTime? then date.getTime() else date
 
 # check if a list of offsets completely covers an interval
-covers = (start, end, offsets, resolution) ->
+covers = (start, end, offsetItems, resolution) ->
     # check for empty list
-    if offsets.length is 0
+    if offsetItems.length is 0
         return false
 
-
-    if offsets[0] > start or offsets[offsets.length-1] + resolution < end
+    last = offsetItems[offsetItems.length-1]
+    if offsetItems[0].offset > start or last.offset + last.width < end
         return false
 
-    [ previous, others... ] = offsets
-    for offset in others
-        if offset - previous > resolution
+    [ previous, others... ] = offsetItems
+    for item in others
+        if previous.offset + previous.width < item.offset
             return false
-        previous = offset
+        previous = item
 
     return true
 
@@ -70,6 +70,7 @@ class BucketCache
         time = toTime(offset)
         @prepareResolution(resolution)
         @cache[resolution].buckets[time] = {
+            offset: time,
             count: count,
             width: width,
         }
@@ -94,29 +95,38 @@ class BucketCache
     isCountLower: (start, end, lowerThan) ->
         startTime = toTime(start)
         endTime = toTime(end)
-        definite = false
         count = 0
 
         sumReducer = (acc, offset) ->
             return acc + res.buckets[offset].count
 
+        # loop over all resolutions, starting with the lowest
         for resolution in @resolutions
             res = @cache[resolution]
+
+            # get all offsets that intersect with start/end time
             offsetsWithin = res.offsets
                 .filter((offset) ->
                     offset >= startTime and (offset + resolution) <= endTime
                 )
 
+            # calculate the sum of all records intersecting with start/end
             sum = offsetsWithin.reduce(sumReducer, 0)
             if sum > lowerThan
                 return [ false, true ]
 
+            # get all offsets that are strictly within start/end
             offsetsIntersecting = res.offsets
                 .filter((offset) ->
                     (offset + resolution) > startTime and offset < endTime
                 )
 
+            # calculate the sum of all records that are strictly within start/end
             sum = offsetsIntersecting.reduce(sumReducer, 0)
+
+            # if the sum is lower than the threshold, calculate whether the
+            # offsets cover the whole of the given interval to be certain
+
             if sum < lowerThan and covers(startTime, endTime, offsetsIntersecting, resolution)
                 return [ true, true ]
 

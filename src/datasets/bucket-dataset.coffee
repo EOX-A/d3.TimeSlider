@@ -11,13 +11,21 @@ class BucketDataset extends RecordDataset
         lastBucketSyncState = 0
         @toFetch = 0
 
-    useBuckets: (start, end) ->
-        [ isLower, definite ] = @bucketCache.isCountLower(start, end, @histogramThreshold)
+    useBuckets: (start, end, preferRecords = false) ->
+        [ isLower, definite ] = @bucketCache.isCountLower(start, end, @histogramThreshold, preferRecords)
+
+        if preferRecords and not definite and
+            count = @cache.get(start, end).length
+            if count > 0 and count < @histogramThreshold
+                return true
+
         return not isLower or not definite
 
     makeTicks: (scale) ->
         ticks = scale.ticks(@histogramBinCount or 20)
-        resolution = ticks[1] - ticks[0]
+        resolution = d3.median(
+            (ticks[i] - ticks[i-1] for i in [1..(ticks.length-1)])
+        )
         ticks = [new Date(ticks[0].getTime() - resolution)]
             .concat(ticks)
             .concat([new Date(ticks[ticks.length - 1].getTime() + resolution)])
@@ -67,7 +75,7 @@ class BucketDataset extends RecordDataset
                 )
 
     draw: (start, end, options) ->
-        if @useBuckets(start, end)
+        if @useBuckets(start, end, true)
             { scales } = options
             [ ticks, resolution ] = @makeTicks(scales.x)
             @element.selectAll('.record').remove()
