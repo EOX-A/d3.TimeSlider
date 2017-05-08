@@ -14,7 +14,7 @@ class BucketDataset extends RecordDataset
     useBuckets: (start, end, preferRecords = false) ->
         [ isLower, definite ] = @bucketCache.isCountLower(start, end, @histogramThreshold, preferRecords)
 
-        if preferRecords and not definite and
+        if preferRecords and not definite
             count = @cache.get(start, end).length
             if count > 0 and count < @histogramThreshold
                 return true

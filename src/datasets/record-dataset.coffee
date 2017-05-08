@@ -15,7 +15,6 @@ class RecordDataset extends Dataset
         return records.map((record) ->
             if record instanceof Date
                 record = [ record, record ]
-
             else if not (record[1] instanceof Date)
                 record = [ record[0], record[0] ].concat(record[1..])
 
