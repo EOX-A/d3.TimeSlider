@@ -114,6 +114,17 @@ class BucketDataset extends RecordDataset
 
         bars.exit().remove()
 
+        missingIntervals = buckets
+            .filter((bucket) -> not bucket[3])
+            .map((bucket) ->
+                if bucket[1]
+                    return bucket
+                else
+                    return [bucket[0], new Date(bucket[0].getTime() + resolution)]
+            )
+
+        @drawMissing(missingIntervals, true, scales, options)
+
     setupBuckets: (bucketElement, y, resolution, { scales, tooltip, binTooltipFormatter }) ->
         bucketElement
             .attr('class', 'bucket')

@@ -80,7 +80,7 @@ class RecordCache
         @reservedBuckets = nonIntersecting.concat(intervals)
 
     # fetch the source, but only the intervals that are required
-    getMissing: (start, end, params, source, callback) ->
+    getMissing: (start, end) ->
         intersecting = @getIntersecting(start, end, true)
         intervals = [[start, end],]
         for bucket in intersecting

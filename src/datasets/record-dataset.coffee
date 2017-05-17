@@ -25,8 +25,10 @@ class RecordDataset extends Dataset
         { scales } = options
         if @cache
             records = @cache.get(start, end)
+            missingIntervals = @cache.getMissing(start, end)
         else
             records = @records || []
+            missingIntervals = []
 
         interval = [start, end]
         records = records.filter((record) ->
@@ -41,6 +43,7 @@ class RecordDataset extends Dataset
                 new Date(record[0] + (record[1] - record[0]) / 2)
             )
             @drawHistogram(records, scales, options)
+            @drawMissing(missingIntervals, true, scales, options)
 
         else
             @element.selectAll('.bin').remove()
@@ -69,6 +72,7 @@ class RecordDataset extends Dataset
             )
             @drawRanges(highlightRanges, scales, options, true)
             @drawPoints(highlightPoints, scales, options, true)
+            @drawMissing(missingIntervals, false, scales, options)
 
     drawAsPoint: (record, scale) ->
         return pixelWidth(record, scale) < 5
@@ -202,6 +206,49 @@ class RecordDataset extends Dataset
           .call((binElement) => @setupBins(binElement, y, options))
 
         bars.exit().remove()
+
+    drawMissing: (intervals, useHistogram, scales, options) ->
+        { ticksize } = options
+        className = 'missing-interval'
+
+        base = (elem) ->
+            elem.attr('class', className)
+                .attr('stroke', 'rgba(20, 20, 20, 0.2)')
+                .attr('stroke-width', 1)
+                .attr('fill', 'rgba(50, 50, 50, 0.2)')
+
+        bins = (elem) =>
+            elem.attr('x', 1)
+                .attr('width', (interval) =>
+                    if isNaN(scales.x(new Date(interval[1])) - scales.x(new Date(interval[0])))
+                        console.log(interval, 'isNaN')
+                    return scales.x(new Date(interval[1])) - scales.x(new Date(interval[0]))
+                )
+                .attr('transform', (interval) => "translate(#{ scales.x(new Date(interval[0])) }, #{ -20 })")
+                .attr('height', 20)
+
+
+        rect = (elem) =>
+            elem.attr('x', (interval) => scales.x(new Date(interval[0])) )
+                .attr('y', - (ticksize + 3) * @index + -(ticksize - 2) )
+                .attr('width', (interval) =>
+                    scales.x(new Date(interval[1])) - scales.x(new Date(interval[0]))
+                )
+                .attr('height', (ticksize - 2))
+                .attr('stroke', 'rgba(20, 20, 20, 0.3)')
+                .attr('stroke-width', 1)
+                .attr('fill', 'rgba(50, 50, 50, 0.3)')
+
+        r = @element.selectAll("rect.#{ className }")
+            .data(intervals)
+            .call(base)
+            .call(if useHistogram then bins else rect)
+
+        r.enter().append('rect')
+            .call(base)
+            .call(if useHistogram then bins else rect)
+
+        r.exit().remove()
 
     # Convenience method to hook up a single record elements events
     setupRecord: (recordElement, { recordFilter, tooltip, tooltipFormatter, binTooltipFormatter }) ->
