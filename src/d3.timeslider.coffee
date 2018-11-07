@@ -55,8 +55,12 @@ class TimeSlider extends EventEmitter
 
         # default options and other variables for later
         if @useBBox
-            @options.width = @svg[0][0].getBBox().width
-            @options.height = @svg[0][0].getBBox().height
+            if @svg[0][0].getBoundingClientRect
+                @options.width = @svg[0][0].getBoundingClientRect().width
+                @options.height = @svg[0][0].getBoundingClientRect().height
+            else
+                @options.width = @svg[0][0].getBBox().width
+                @options.height = @svg[0][0].getBBox().height
         else
             @options.width = @svg[0][0].clientWidth
             @options.height = @svg[0][0].clientHeight
@@ -240,9 +244,16 @@ class TimeSlider extends EventEmitter
             .on('resize', =>
                 # update the width of the element and the scales
                 svg = d3.select(@element).select('svg.timeslider')[0][0]
-                @options.width = if @useBBox then svg.getBBox().width else svg.clientWidth
-                @scales.x.range([0, @options.width])
 
+                if @useBBox
+                    if svg.getBoundingClientRect
+                        @options.width = svg.getBoundingClientRect().width
+                    else
+                        @options.width = svg.getBBox().width
+                else
+                    @options.width = svg.clientWidth
+
+                @scales.x.range([0, @options.width])
                 @redraw()
             )
 
