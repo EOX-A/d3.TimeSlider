@@ -4,7 +4,7 @@ EventEmitter = require '../event-emitter.coffee'
 
 # Dataset utility class for internal use only
 class Dataset extends EventEmitter
-    constructor: ({ @id,  @color, @highlightFillColor, @highlightStrokeColor,
+    constructor: ({ @id,  @color, @noBorder, @highlightFillColor, @highlightStrokeColor,
                     @source, @sourceParams, @index, @records,
                     @paths, @lineplot, @ordinal, @element, debounceTime }) ->
         @fetchDebounced = debounce(@doFetch, debounceTime)

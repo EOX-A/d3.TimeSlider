@@ -641,6 +641,7 @@ class TimeSlider extends EventEmitter
             id: id,
             index: index,
             color: definition.color,
+            noBorder: definition.noBorder,
             highlightFillColor: definition.highlightFillColor,
             highlightStrokeColor: definition.highlightStrokeColor,
             source: definition.source,

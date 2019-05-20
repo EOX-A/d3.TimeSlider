@@ -108,7 +108,7 @@ class RecordDataset extends Dataset
 
     drawRanges: (records, scales, options, highlight = false) ->
         color = if highlight then @highlightFillColor else @color
-        strokeColor = if highlight then @highlightStrokeColor else d3.rgb(color).darker()
+        strokeColor = if highlight then @highlightStrokeColor else if @noBorder then d3.rgb(color) else  d3.rgb(color).darker()
         className = if highlight then 'highlight-record' else 'record'
         { ticksize, recordFilter } = options
         rect = (elem) =>
@@ -142,7 +142,7 @@ class RecordDataset extends Dataset
 
     drawPoints: (records, scales, options, highlight = false) ->
         color = if highlight then @highlightFillColor else @color
-        strokeColor = if highlight then @highlightStrokeColor else d3.rgb(color).darker()
+        strokeColor = if highlight then @highlightStrokeColor else if @noBorder then d3.rgb(color) else d3.rgb(color).darker()
         className = if highlight then 'highlight-record' else 'record'
         { ticksize, recordFilter } = options
         circle = (elem) =>
@@ -337,6 +337,8 @@ class RecordDataset extends Dataset
                 , false)
                 if highlight
                     @highlightStrokeColor
+                else if @noBorder
+                    d3.rgb(@color)
                 else
                     d3.rgb(@color).darker()
             )

@@ -145,6 +145,8 @@ class BucketDataset extends RecordDataset
                 , false)
                 if highlight
                     @highlightStrokeColor
+                else if @noBorder
+                    d3.rgb(@color)
                 else
                     d3.rgb(@color).darker()
             )

@@ -93,6 +93,7 @@ An array of dataset definitions (objects) with the following layout
 
  - `id`: The ID of the dataset. This is used in events and callbacks
  - `color`: The color to display the dataset. Anything possible for CSS works here
+ - `noBorder`: Boolean option to disable darker record/bucket color. if border of records/buckets should have the border color same as `color` (border not visible) or darker.
  - `lineplot`: Whether this dataset will be displayed as a line
  - `histogramThreshold`: Sets the threshold, when this dataset will be displayed
    in a quantized manner.
