@@ -65,6 +65,11 @@ It is passed the bin - an array of records (again an array of [start, end,
 params]). By default, the `tooltipFormatter` is invoked for each record and
 joined by a `<br>`.
 
+### `alternativeBrush` - `boolean`
+
+When set to `true`, the selection brush is displayed below other parts of timeslider and looks like a thin strip with circle handles on sides.
+Defaults to `false`.
+
 ### `constrain` - `boolean`
 
 When set, the viewable interval is constrained to the `domain`.
