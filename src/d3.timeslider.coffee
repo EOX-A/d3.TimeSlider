@@ -235,7 +235,7 @@ class TimeSlider extends EventEmitter
         if !@options.alternativeBrush
             # traditional view with box for selection
             @gBrush.selectAll('rect')
-                .attr('height', '#{@options.height - 19}')
+                .attr('height', "#{@options.height - 19}")
                 .attr('y', 0)
         else
         # alternative brush
