@@ -242,17 +242,15 @@ class TimeSlider extends EventEmitter
             @gBrush.selectAll('rect')
                 .attr('height', 6)
                 .attr('y', "#{@options.height + 6}")
-            @handleShape = d3.svg.arc()
-                .innerRadius(0)
-                .outerRadius(8)
-                .startAngle(0)
-                .endAngle(2 * Math.PI)
-            @gBrush.selectAll('.resize').append('path')
+
+            @gBrush.selectAll('.resize').append('circle')
                 .attr('class', 'handle-circle')
                 .attr('fill', '#000000')
                 .attr('cursor', 'ew-resize')
-                .attr('transform', "translate(0, #{@options.height + 9})")
-                .attr('d', @handleShape)
+                .attr('r', 8)
+                .attr('cx', 0)
+                .attr('cy', @options.height + 9)
+
         if @brushTooltip
             # setup hover events on brush
             @gBrush.selectAll('.resize.w')
