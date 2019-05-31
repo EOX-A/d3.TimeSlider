@@ -65,6 +65,11 @@ It is passed the bin - an array of records (again an array of [start, end,
 params]). By default, the `tooltipFormatter` is invoked for each record and
 joined by a `<br>`.
 
+### `alternativeBrush` - `boolean`
+
+When set to `true`, the selection brush is displayed below other parts of timeslider and looks like a thin strip with circle handles on sides.
+Defaults to `false`.
+
 ### `constrain` - `boolean`
 
 When set, the viewable interval is constrained to the `domain`.
@@ -93,6 +98,7 @@ An array of dataset definitions (objects) with the following layout
 
  - `id`: The ID of the dataset. This is used in events and callbacks
  - `color`: The color to display the dataset. Anything possible for CSS works here
+ - `noBorder`: Boolean option to disable individual record/bucket borders.
  - `lineplot`: Whether this dataset will be displayed as a line
  - `histogramThreshold`: Sets the threshold, when this dataset will be displayed
    in a quantized manner.

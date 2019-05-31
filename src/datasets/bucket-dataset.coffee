@@ -145,6 +145,8 @@ class BucketDataset extends RecordDataset
                 , false)
                 if highlight
                     @highlightStrokeColor
+                else if @noBorder
+                    d3.rgb(@color)
                 else
                     d3.rgb(@color).darker()
             )
@@ -157,6 +159,7 @@ class BucketDataset extends RecordDataset
                 "translate(#{ scales.x(d[0]) }, #{ -y(d[2]) or 0 })"
                 )
             .attr('height', (d) -> if d[2] then y(d[2]) else 0)
+            .attr('stroke-width', if @noBorder then 2 else 1)
 
         bucketElement
             .on('mouseover', (bucket) =>

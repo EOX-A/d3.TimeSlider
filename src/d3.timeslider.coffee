@@ -64,6 +64,9 @@ class TimeSlider extends EventEmitter
         else
             @options.width = @svg[0][0].clientWidth
             @options.height = @svg[0][0].clientHeight
+        # offset whole timeslider to make space below for the brush
+        if @options.alternativeBrush
+            @options.height = @options.height - 18
 
         ### END-TODO ###
 
@@ -225,12 +228,51 @@ class TimeSlider extends EventEmitter
                 .attr('y', 0)
 
         # add a group to draw the brush in
-        @svg.append('g')
+        @gBrush = @svg.append('g')
             .attr('class', 'brush')
             .call(@brush)
-            .selectAll('rect')
+
+        if !@options.alternativeBrush
+            # traditional view with box for selection
+            @gBrush.selectAll('rect')
                 .attr('height', "#{@options.height - 19}")
                 .attr('y', 0)
+        else
+        # alternative brush
+            @gBrush.selectAll('rect')
+                .attr('height', 6)
+                .attr('y', "#{@options.height + 6}")
+
+            @gBrush.selectAll('.resize').append('circle')
+                .attr('class', 'handle-circle')
+                .attr('fill', '#000000')
+                .attr('cursor', 'ew-resize')
+                .attr('r', 8)
+                .attr('cx', 0)
+                .attr('cy', @options.height + 9)
+
+        if @brushTooltip
+            # setup hover events on brush
+            @gBrush.selectAll('.resize.w')
+                .on('mouseover', => 
+                    @tooltipBrushMin.transition()
+                        .duration(100)
+                        .style('opacity', 0.9))
+                .on('mouseout', => 
+                    if !@brushing
+                        @tooltipBrushMin.transition()
+                            .duration(100)
+                            .style('opacity', 0))
+            @gBrush.selectAll('.resize.e')
+                .on('mouseover', => 
+                    @tooltipBrushMax.transition()
+                        .duration(100)
+                        .style('opacity', 0.9))
+                .on('mouseout', => 
+                    if !@brushing
+                        @tooltipBrushMax.transition()
+                            .duration(100)
+                            .style('opacity', 0))
 
         # add a group that contains all datasets
         @svg.append('g')
@@ -641,6 +683,7 @@ class TimeSlider extends EventEmitter
             id: id,
             index: index,
             color: definition.color,
+            noBorder: definition.noBorder,
             highlightFillColor: definition.highlightFillColor,
             highlightStrokeColor: definition.highlightStrokeColor,
             source: definition.source,
