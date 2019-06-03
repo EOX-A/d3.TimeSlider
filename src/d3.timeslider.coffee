@@ -144,6 +144,14 @@ class TimeSlider extends EventEmitter
             .attr('class', 'mainaxis')
             .call(@axis.x)
 
+        # by default hidden overlay area, can be styled when TimeSlider instance is created to show a background for dataset area, which does not obscure tick texts
+        @svg.select('.mainaxis').append('rect')
+            .attr('class', 'mainaxis-overlay')
+            .style('opacity', 0)
+            .style('fill', '#666')
+            .attr('height', @options.height-22)
+            .attr('width', @options.width)
+
         # translate the main x axis
         d3.select(@element).select('g.mainaxis .domain')
             .attr('transform', "translate(0, #{@options.height - 18})")
@@ -240,8 +248,8 @@ class TimeSlider extends EventEmitter
         else
         # alternative brush
             @gBrush.selectAll('rect')
-                .attr('height', 6)
-                .attr('y', "#{@options.height + 6}")
+                .attr('height', 4)
+                .attr('y', "#{@options.height + 4}")
 
             @gBrush.selectAll('.resize').append('circle')
                 .attr('class', 'handle-circle')
@@ -249,7 +257,7 @@ class TimeSlider extends EventEmitter
                 .attr('cursor', 'ew-resize')
                 .attr('r', 8)
                 .attr('cx', 0)
-                .attr('cy', @options.height + 9)
+                .attr('cy', @options.height + 6)
 
         if @brushTooltip
             # setup hover events on brush
