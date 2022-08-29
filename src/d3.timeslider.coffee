@@ -427,6 +427,7 @@ class TimeSlider extends EventEmitter
                 .attr("id", "reload")
                 .attr("class", "control")
                 .on("click", ()=>
+                    @dispatch('reload')
                     for dataset of @datasets
                         @reloadDataset(dataset, true)
                 )
