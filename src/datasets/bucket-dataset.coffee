@@ -7,12 +7,10 @@ class BucketDataset extends RecordDataset
         super(options)
         @bucketCache = new BucketCache()
         { @bucketSource } = options
-        currentBucketSyncState = 0
-        lastBucketSyncState = 0
         @toFetch = 0
 
     useBuckets: (start, end, preferRecords = false) ->
-        [ isLower, definite ] = @bucketCache.isCountLower(start, end, @histogramThreshold, preferRecords)
+        [ isLower, definite ] = @bucketCache.isCountLower(start, end, @histogramThreshold)
 
         if preferRecords and not definite
             count = @cache.get(start, end).length
@@ -37,9 +35,6 @@ class BucketDataset extends RecordDataset
     doFetch: (start, end, params) ->
         { scales } = params
         [ ticks, resolution ] = @makeTicks(scales.x)
-
-        [ isLower, definite ] = @bucketCache.isCountLower(start, end, @histogramThreshold)
-
         if @useBuckets(start, end)
             @doFetchBuckets(start, end, resolution, ticks, params)
         else
