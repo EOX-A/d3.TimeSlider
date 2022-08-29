@@ -52,9 +52,10 @@ class BucketDataset extends RecordDataset
         if bucketsToFetch.length > 0
             @toFetch += bucketsToFetch.length
             @listeners.syncing()
-
             summaryCallback = after(bucketsToFetch.length, () =>
-                if not @useBuckets(start, end)
+                # after all buckets fetched and count > 0 but below threshold
+                # fetch individual records for start,end timeframe
+                if not @bucketCache.isCountLower(start, end, 1) and not @useBuckets(start, end)
                     RecordDataset.prototype.doFetch.call(this, start, end, params)
             )
 
