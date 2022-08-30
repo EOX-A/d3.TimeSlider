@@ -35,10 +35,7 @@ class BucketDataset extends RecordDataset
     doFetch: (start, end, params) ->
         { scales } = params
         [ ticks, resolution ] = @makeTicks(scales.x)
-        if @useBuckets(start, end)
-            @doFetchBuckets(start, end, resolution, ticks, params)
-        else
-            super(start, end, params)
+        @doFetchBuckets(start, end, resolution, ticks, params)
 
     doFetchBuckets: (start, end, resolution, ticks, params) ->
         source = @getSourceFunction(@bucketSource)
@@ -55,7 +52,7 @@ class BucketDataset extends RecordDataset
             summaryCallback = after(bucketsToFetch.length, () =>
                 # after all buckets fetched and count > 0 but below threshold
                 # fetch individual records for start,end timeframe
-                if not @bucketCache.isCountLower(start, end, 1) and not @useBuckets(start, end)
+                if not @bucketCache.isCountLower(start, end, 1)[0] and not @useBuckets(start, end)
                     RecordDataset.prototype.doFetch.call(this, start, end, params)
             )
 
