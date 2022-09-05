@@ -21,10 +21,18 @@ describe 'BucketCache', ->
     cache.getBucketApproximate(oneDay, firstDay).should.deep.equal([0, false])
 
     # test set buckets
-    cache.setBucket(oneDay, firstDay, 4)
+    cache.setBucket(oneDay, firstDay, 5, 4)
     cache.hasBucket(oneDay, firstDay).should.be.true
-    cache.getBucket(oneDay, firstDay).should.equal(4)
-    cache.getBucketApproximate(oneDay, firstDay).should.deep.equal([4, true])
+    cache.getBucket(oneDay, firstDay).should.deep.equal({
+      "count": 4
+      "offset": 946684800000
+      "width": 5
+    })
+    cache.getBucketApproximate(oneDay, firstDay).should.deep.equal([{
+      "count": 4
+      "offset": 946684800000
+      "width": 5
+    }, true])
 
   it 'should allow to reserve buckets', ->
     cache = new BucketCache
@@ -35,7 +43,7 @@ describe 'BucketCache', ->
 
   it 'should correctly approximate', ->
     cache = new BucketCache
-    cache.setBucket(twoDays, firstDay, 4)
+    cache.setBucket(twoDays, firstDay, 20, 4)
     cache.getBucketApproximate(oneDay, firstDay).should.deep.equal([2, false])
     cache.getBucketApproximate(oneDay, secondDay).should.deep.equal([2, false])
     cache.getBucketApproximate(oneDay, thirdDay).should.deep.equal([0, false])
