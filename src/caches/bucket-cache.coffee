@@ -105,23 +105,12 @@ class BucketCache
             res = @cache[resolution]
 
             # get all offsets that intersect with start/end time
-            offsetsWithin = res.offsets
+            offsetsIntersecting = res.offsets
                 .filter((offset) ->
-                    offset >= startTime and (offset + resolution) <= endTime
+                    (offset + resolution) > startTime and offset < (endTime + resolution)
                 )
 
             # calculate the sum of all records intersecting with start/end
-            sum = offsetsWithin.reduce(sumReducer, 0)
-            if sum > lowerThan
-                return [ false, true ]
-
-            # get all offsets that are strictly within start/end
-            offsetsIntersecting = res.offsets
-                .filter((offset) ->
-                    (offset + resolution) > startTime and offset < endTime
-                )
-
-            # calculate the sum of all records that are strictly within start/end
             sum = offsetsIntersecting.reduce(sumReducer, 0)
 
             # if the sum is lower than the threshold, calculate whether the
