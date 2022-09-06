@@ -8,43 +8,47 @@ class BucketDataset extends RecordDataset
         @bucketCache = new BucketCache()
         { @bucketSource } = options
         @toFetch = 0
+        @drawBucketState = null
 
-    useBuckets: (start, end, preferRecords = false) ->
+    useBuckets: (start, end) ->
         [ isLower, definite ] = @bucketCache.isCountLower(start, end, @histogramThreshold)
-
-        if preferRecords and not definite
-            count = @cache.get(start, end).length
-            if count > 0 and count < @histogramThreshold
-                return true
-
         return not isLower or not definite
 
     makeTicks: (scale) ->
+        # d3 ticks are "nicely rounded for optimal legibility"
+        # but months have different number of days, so not uniform resolution
+        # store width of bucket, which is different from median resolution for days
         ticks = scale.ticks(@histogramBinCount or 20)
         resolution = d3.median(
             (ticks[i] - ticks[i-1] for i in [1..(ticks.length-1)])
         )
+
         ticks = [new Date(ticks[0].getTime() - resolution)]
             .concat(ticks)
             .concat([new Date(ticks[ticks.length - 1].getTime() + resolution)])
-        return [ticks, resolution];
+        tickObjects = []
+        for tick, i in ticks
+            # store width of bucket (next - current)
+            tickObjects.push({
+                offset: tick,
+                width: if ticks?[i+1] then ticks[i+1] - tick else resolution,
+            })
+        return [tickObjects, resolution];
 
     isSyncing: () ->
         return @toFetch > 0
 
     doFetch: (start, end, params) ->
         { scales } = params
-        [ ticks, resolution ] = @makeTicks(scales.x)
-        @doFetchBuckets(start, end, resolution, ticks, params)
+        [ tickObjects, resolution ] = @makeTicks(scales.x)
+        @doFetchBuckets(start, end, resolution, tickObjects, params)
 
-    doFetchBuckets: (start, end, resolution, ticks, params) ->
+    doFetchBuckets: (start, end, resolution, tickObjects, params) ->
         source = @getSourceFunction(@bucketSource)
         bucketsToFetch = []
-        for tick, i in ticks
-            if not @bucketCache.hasBucketOrReserved(resolution, tick)
-                next = ticks[i + 1]
-                dt = next.getTime() - tick.getTime() if next
-                bucketsToFetch.push([tick, dt])
+        for tick, i in tickObjects
+            if not @bucketCache.hasBucketOrReserved(resolution, tick.offset)
+                bucketsToFetch.push([tick.offset, tick.width])
 
         if bucketsToFetch.length > 0
             @toFetch += bucketsToFetch.length
@@ -53,13 +57,17 @@ class BucketDataset extends RecordDataset
                 # after all buckets fetched and count > 0 but below threshold
                 # fetch individual records for start,end timeframe
                 if not @bucketCache.isCountLower(start, end, 1)[0] and not @useBuckets(start, end)
+                    @drawBucketState = false
                     RecordDataset.prototype.doFetch.call(this, start, end, params)
+                else
+                    @drawBucketState = true
+                    @listeners.synced()
             )
 
             bucketsToFetch.forEach ([bucket, dt]) =>
                 @bucketCache.reserveBucket(resolution, bucket)
                 a = new Date(bucket)
-                b = new Date(bucket.getTime() + (dt or resolution))
+                b = new Date(bucket.getTime() + dt)
                 source(a, b, params, (count) =>
                     @bucketCache.setBucket(resolution, a, dt, count)
                     @toFetch -= 1
@@ -68,23 +76,29 @@ class BucketDataset extends RecordDataset
                 )
 
     draw: (start, end, options) ->
-        if @useBuckets(start, end, true)
+        toDrawBucket = true
+        if @drawBucketState != null
+            if @isSyncing()
+                toDrawBucket = @drawBucketState
+            else
+                toDrawBucket = not @bucketCache.isCountLower(start, end, @histogramThreshold)[0]
+        if toDrawBucket == true
             { scales } = options
-            [ ticks, resolution ] = @makeTicks(scales.x)
+            [ tickObjects, resolution ] = @makeTicks(scales.x)
             @element.selectAll('.record').remove()
             @element.selectAll('.bin').remove()
-            @drawBuckets(ticks, resolution, options)
+            @drawBuckets(tickObjects, resolution, options)
         else
             @element.selectAll('.bucket').remove()
             super(start, end, options)
 
-    drawBuckets: (ticks, resolution, options) ->
+    drawBuckets: (tickObjects, resolution, options) ->
         { scales, height } = options
 
-        buckets = ticks.map((tick) =>
-            [ bucket, definite ] = @bucketCache.getBucketApproximate(resolution, tick)
-            end = new Date(tick.getTime() + bucket.width) if bucket.width?
-            return [ tick, end, bucket.count, definite ]
+        buckets = tickObjects.map((tick) =>
+            [ bucket, definite ] = @bucketCache.getBucketApproximate(resolution, tick.offset)
+            end = new Date(tick.offset.getTime() + bucket.width) if bucket.width?
+            return [ tick.offset, end, bucket.count, definite ]
         )
 
         y = d3.scale.linear()
