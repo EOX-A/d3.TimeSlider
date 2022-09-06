@@ -8,7 +8,7 @@ class BucketDataset extends RecordDataset
         @bucketCache = new BucketCache()
         { @bucketSource } = options
         @toFetch = 0
-        @drawBucket = true
+        @drawBucketState = null
 
     useBuckets: (start, end) ->
         [ isLower, definite ] = @bucketCache.isCountLower(start, end, @histogramThreshold)
@@ -57,10 +57,10 @@ class BucketDataset extends RecordDataset
                 # after all buckets fetched and count > 0 but below threshold
                 # fetch individual records for start,end timeframe
                 if not @bucketCache.isCountLower(start, end, 1)[0] and not @useBuckets(start, end)
-                    @drawBucket = false
+                    @drawBucketState = false
                     RecordDataset.prototype.doFetch.call(this, start, end, params)
                 else
-                    @drawBucket = true
+                    @drawBucketState = true
                     @listeners.synced()
             )
 
@@ -76,7 +76,13 @@ class BucketDataset extends RecordDataset
                 )
 
     draw: (start, end, options) ->
-        if @drawBucket
+        toDrawBucket = true
+        if @drawBucketState != null
+            if @isSyncing()
+                toDrawBucket = @drawBucketState
+            else
+                toDrawBucket = not @bucketCache.isCountLower(start, end, @histogramThreshold)[0]
+        if toDrawBucket == true
             { scales } = options
             [ tickObjects, resolution ] = @makeTicks(scales.x)
             @element.selectAll('.record').remove()
