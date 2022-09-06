@@ -5,18 +5,18 @@ toTime = (date) ->
     if date?.getTime? then date.getTime() else date
 
 # check if a list of offsets completely covers an interval
-covers = (start, end, offsets, resolution) ->
+covers = (start, end, offsetItems, resolution) ->
     # check for empty list
-    if offsets.length is 0
+    if offsetItems.length is 0
         return false
 
-    last = offsets[offsets.length-1]
-    if offsets[0] > start or last + resolution < end
+    last = offsetItems[offsetItems.length-1]
+    if offsetItems[0].offset > start or last.offset + last.width < end
         return false
 
-    [ previous, others... ] = offsets
+    [ previous, others... ] = offsetItems
     for item in others
-        if previous + resolution < item
+        if previous.offset + previous.width < item.offset
             return false
         previous = item
 
