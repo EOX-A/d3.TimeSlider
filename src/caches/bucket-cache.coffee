@@ -98,24 +98,24 @@ class BucketCache
         count = 0
 
         sumReducer = (acc, offset) ->
-            return acc + res.buckets[offset].count
+            return acc + res.buckets[offset.offset].count
 
         # loop over all resolutions, starting with the lowest
         for resolution in @resolutions
             res = @cache[resolution]
 
             # get all offsets that intersect with start/end time
-            offsetsIntersecting = res.offsets
-                .filter((offset) ->
-                    (offset + resolution) > startTime and offset < (endTime + resolution)
+            offsetObjectsIntersecting = res.offsets
+                .map((offset) => return {offset: offset, width: res.buckets[offset].width})
+                .filter((offsetObj) ->
+                    (offsetObj.offset + offsetObj.width) > startTime and offsetObj.offset < (endTime + offsetObj.width)
                 )
-
             # calculate the sum of all records intersecting with start/end
-            sum = offsetsIntersecting.reduce(sumReducer, 0)
+            sum = offsetObjectsIntersecting.reduce(sumReducer, 0)
 
             # if the sum is lower than the threshold, calculate whether the
             # offsets cover the whole of the given interval to be certain
-            if covers(startTime, endTime, offsetsIntersecting, resolution)
+            if covers(startTime, endTime, offsetObjectsIntersecting, resolution)
                 return [ sum < lowerThan, true ]
 
         return [ false, false ]
