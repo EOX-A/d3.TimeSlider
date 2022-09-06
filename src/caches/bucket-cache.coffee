@@ -115,9 +115,8 @@ class BucketCache
 
             # if the sum is lower than the threshold, calculate whether the
             # offsets cover the whole of the given interval to be certain
-
-            if sum < lowerThan and covers(startTime, endTime, offsetsIntersecting, resolution)
-                return [ true, true ]
+            if covers(startTime, endTime, offsetsIntersecting, resolution)
+                return [ sum < lowerThan, true ]
 
         return [ false, false ]
 
