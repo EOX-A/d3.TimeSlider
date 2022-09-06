@@ -61,6 +61,7 @@ class BucketDataset extends RecordDataset
                     RecordDataset.prototype.doFetch.call(this, start, end, params)
                 else
                     @drawBucket = true
+                    @redraw()
             )
 
             bucketsToFetch.forEach ([bucket, dt]) =>
