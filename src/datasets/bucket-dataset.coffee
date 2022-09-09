@@ -74,14 +74,18 @@ class BucketDataset extends RecordDataset
                     @listeners.synced()
                     summaryCallback()
                 )
+        else if not @bucketCache.isCountLower(start, end, 1)[0] and not @useBuckets(start, end)
+            @drawBucketState = false
+            RecordDataset.prototype.doFetch.call(this, start, end, params)
 
     draw: (start, end, options) ->
         toDrawBucket = true
         if @drawBucketState != null
-            if @isSyncing()
+            [ isLower, definite ] = @bucketCache.isCountLower(start, end, @histogramThreshold)
+            if not definite
                 toDrawBucket = @drawBucketState
             else
-                toDrawBucket = not @bucketCache.isCountLower(start, end, @histogramThreshold)[0]
+                toDrawBucket = not isLower
         if toDrawBucket == true
             { scales } = options
             [ tickObjects, resolution ] = @makeTicks(scales.x)
