@@ -110,18 +110,42 @@ parseDuration = (duration) ->
 offsetDate = (date, seconds) ->
     return new Date(date.getTime() + seconds * 1000)
 
-centerTooltipOn = (tooltip, target, dir = 'center', offset = [0, 0]) ->
+
+findParentByClass = (element, className) ->
+    # traverse up the DOM tree until requested parent node is found
+    while element.classList
+        if element.classList.contains(className)
+            return element
+        element = element.parentNode
+
+
+centerTooltipOn = (tooltip, target, dir = 'center', offset = [0, 0], viewportClassName = 'timeslider') ->
     rect = target.getBoundingClientRect()
     tooltipRect = tooltip[0][0].getBoundingClientRect()
-    if dir == 'left'
-        xOff = rect.left
-    else if dir == 'right'
-        xOff = rect.right
+
+    viewport = findParentByClass(target, viewportClassName)
+
+    if viewport
+        # clip the x-axis rectangle bounds to the viewport extent
+        # to make the tooltip always visible
+        viewportRect = viewport.getBoundingClientRect()
+        xLeft = Math.max(rect.left, viewportRect.left)
+        xRight = Math.min(rect.right, viewportRect.right)
     else
-        xOff = rect.left + rect.width / 2
+        # default to the rectangle bounds if the viewport cannot be found
+        xLeft = rect.left
+        xRight = rect.right
+
+    if dir == 'left'
+        xOff = xLeft
+    else if dir == 'right'
+        xOff = xRight
+    else
+        xOff = xLeft + (xRight - xLeft) / 2
     tooltip
         .style('left', xOff - tooltipRect.width / 2 + offset[0] + "px")
         .style('top', (rect.top - tooltipRect.height) + offset[1] + "px")
+
 
 module.exports =
     split: split
