@@ -262,21 +262,21 @@ class TimeSlider extends EventEmitter
         if @brushTooltip
             # setup hover events on brush
             @gBrush.selectAll('.resize.w')
-                .on('mouseover', => 
+                .on('mouseover', =>
                     @tooltipBrushMin.transition()
                         .duration(100)
                         .style('opacity', 0.9))
-                .on('mouseout', => 
+                .on('mouseout', =>
                     if !@brushing
                         @tooltipBrushMin.transition()
                             .duration(100)
                             .style('opacity', 0))
             @gBrush.selectAll('.resize.e')
-                .on('mouseover', => 
+                .on('mouseover', =>
                     @tooltipBrushMax.transition()
                         .duration(100)
                         .style('opacity', 0.9))
-                .on('mouseout', => 
+                .on('mouseout', =>
                     if !@brushing
                         @tooltipBrushMax.transition()
                             .duration(100)
@@ -418,7 +418,7 @@ class TimeSlider extends EventEmitter
                     e = new Date(e.getTime()+(d/2))
                     [low, high] = @scales.x.domain()
                     if @options.displayLimit != null and
-                       (e - s) > @options.displayLimit * 1000
+                      (e - s) > @options.displayLimit * 1000
                         [s, e] = @scales.x.domain()
                     @center(s,e)
                 )

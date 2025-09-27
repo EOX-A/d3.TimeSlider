@@ -18,7 +18,7 @@ bisect = (array, x, lo = 0, hi = array.length) ->
     return lo
 
 insort = (array, x) ->
-    array.splice(bisect(array, x), 0, x);
+    array.splice(bisect(array, x), 0, x)
 
 intersects = (a, b) ->
     return a[0] <= b[1] and b[0] <= a[1]
