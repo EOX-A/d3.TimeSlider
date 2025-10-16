@@ -3,6 +3,7 @@ name: CI
 on:
   [ push ]
 permissions:
+  contents: write
   id-token: write  # Required for OIDC
 jobs:
   ci:
